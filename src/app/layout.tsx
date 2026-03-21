@@ -14,12 +14,12 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "Justin Lin | Neuroscience Researcher",
+  title: "Justin Lin",
   description: "UCLA neuroscience student conducting research in neurobiology, bioinformatics, and biomedical science. Explore my research experience, publications, and scientific projects.",
   keywords: ["neuroscience", "research", "UCLA", "bioinformatics", "biomedical science", "Justin Lin"],
   authors: [{ name: "Justin Lin" }],
   openGraph: {
-    title: "Justin Lin | Neuroscience Researcher",
+    title: "Justin Lin",
     description: "UCLA neuroscience student conducting research in neurobiology, bioinformatics, and biomedical science.",
     type: "website",
   },
