@@ -136,7 +136,7 @@ function AboutSection() {
         <div className="flex-shrink-0 w-full lg:w-72 xl:w-96 lg:pt-7 lg:ml-8">
           {/* Name pops in first */}
           <motion.h1
-            className="font-serif text-5xl sm:text-6xl lg:text-7xl xl:text-8xl text-ink mb-4 leading-none tracking-tight font-light"
+            className="font-serif text-5xl sm:text-6xl lg:text-7xl xl:text-8xl text-ink mb-4 leading-none tracking-tight font-light whitespace-nowrap"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
