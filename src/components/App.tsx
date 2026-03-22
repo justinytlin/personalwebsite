@@ -558,7 +558,7 @@ export default function App() {
         </div>
 
         {/* right: profile icon */}
-        <div className="w-6 sm:w-24 flex justify-end">
+        <div className="w-9 sm:w-24 flex justify-end">
           <button
             onClick={() => setProfileOpen(true)}
             className="w-9 h-9 flex items-center justify-center rounded-full bg-white/75 backdrop-blur-md border border-white/90 text-muted hover:text-ink shadow-sm transition-colors"
