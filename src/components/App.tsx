@@ -97,21 +97,28 @@ const polaroids = [
 ];
 
 function Polaroid({ src, caption }: { src: string; caption: string }) {
-  const [hovered, setHovered] = useState(false);
   return (
     <motion.div
-      onHoverStart={() => setHovered(true)}
-      onHoverEnd={() => setHovered(false)}
-      animate={{ scale: hovered ? 1.05 : 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      style={{ filter: "drop-shadow(0 6px 18px rgba(0,0,0,0.13))" }}
-      className="relative bg-white cursor-pointer w-56"
+      whileHover={{ scale: 1.05 }}
+      transition={{ type: "spring", stiffness: 220, damping: 28 }}
+      style={{ willChange: "transform" }}
+      className="relative cursor-pointer w-44 sm:w-52 lg:w-56"
     >
-      <div className="p-3 pb-0">
-        <img src={src} alt={caption} className="w-full h-44 object-cover" />
-      </div>
-      <div className="px-3 py-3">
-        <p className="text-[11px] text-slate-500 font-light text-center leading-tight">{caption}</p>
+      <div
+        className="relative bg-white"
+        style={{ boxShadow: "0 6px 18px rgba(0,0,0,0.13)" }}
+      >
+        <div className="p-3 pb-0">
+          <img
+            src={src}
+            alt={caption}
+            className="w-full h-36 sm:h-40 lg:h-44 object-cover"
+            style={{ willChange: "transform" }}
+          />
+        </div>
+        <div className="px-3 py-3">
+          <p className="text-[10px] sm:text-[11px] text-slate-500 font-light text-center leading-tight">{caption}</p>
+        </div>
       </div>
     </motion.div>
   );
@@ -122,14 +129,14 @@ function AboutSection() {
   const photoBaseDelay = textDelay + 0.4;
 
   return (
-    <div className="w-full h-[calc(100vh-96px)] overflow-hidden scrollbar-hide no-scroll">
-      <div className="flex items-start justify-center h-full max-w-7xl mx-auto px-10 lg:px-16 gap-16 pt-20" style={{ height: 'calc(100vh - 96px)' }}>
+    <div className="w-full">
+      <div className="flex flex-col lg:flex-row items-start justify-center max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 gap-10 lg:gap-16 pt-4 lg:pt-16">
 
         {/* Left: text */}
-        <div className="flex-shrink-0 w-72 xl:w-96 pt-7 ml-8">
+        <div className="flex-shrink-0 w-full lg:w-72 xl:w-96 lg:pt-7 lg:ml-8">
           {/* Name pops in first */}
           <motion.h1
-            className="font-serif text-7xl lg:text-8xl text-ink mb-4 leading-none tracking-tight font-light whitespace-nowrap"
+            className="font-serif text-5xl sm:text-6xl lg:text-7xl xl:text-8xl text-ink mb-4 leading-none tracking-tight font-light"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
@@ -143,11 +150,11 @@ function AboutSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: textDelay, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="flex items-center gap-2 text-ink text-base mb-5 mt-8">
+            <div className="flex items-center gap-2 text-ink text-base mb-5 mt-6 lg:mt-8">
               <MapPin size={16} className="text-mid-blue" />
               <span className="font-light tracking-wide">los angeles, ca</span>
             </div>
-            <div className="space-y-2 text-[16px] md:text-[17px] text-ink leading-relaxed font-light">
+            <div className="space-y-2 text-[15px] md:text-[16px] lg:text-[17px] text-ink leading-relaxed font-light">
               <p>neuroscience @ ucla</p>
               <p>previously @ nasa</p>
               <p className="text-mid-blue">building Bioscript—an AI native ecosystem for organizing and analyzing academic papers</p>
@@ -157,18 +164,19 @@ function AboutSection() {
           </motion.div>
         </div>
 
-        {/* Right: 2×2 grid, each photo pops in 0.5s after the previous */}
-        <div className="hidden lg:grid grid-cols-2 gap-6 shrink-0 ml-auto -ml-16 -mt-4 mr-8">
+        {/* Right: 2×2 grid, shown on all screen sizes (hidden on lg was too restrictive) */}
+        <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:gap-6 shrink-0 w-full lg:w-auto lg:ml-auto lg:-mt-4 lg:mr-8 pb-8 lg:pb-0">
           {polaroids.map((p, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, scale: 0.82, y: 24 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{
-                duration: 0.7,
-                delay: photoBaseDelay + i * 0.2,
+                duration: 0.65,
+                delay: photoBaseDelay + i * 0.15,
                 ease: [0.16, 1, 0.3, 1],
               }}
+              style={{ willChange: "transform, opacity" }}
             >
               <Polaroid {...p} />
             </motion.div>
@@ -182,7 +190,7 @@ function AboutSection() {
 
 function ResearchSection() {
   return (
-    <div className="max-w-4xl mx-auto w-full">
+    <div className="max-w-4xl mx-auto w-full px-4 sm:px-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -193,34 +201,34 @@ function ResearchSection() {
           <p className="text-muted text-sm">peer-reviewed work &amp; preprints</p>
         </div>
 
-        <div className="space-y-6 mb-14">
+        <div className="space-y-4 sm:space-y-6 mb-14">
           {publications.map((pub, i) => (
             <motion.div
               key={i}
-              className="group relative bg-white/70 backdrop-blur-sm rounded-2xl border border-white/80 p-6 hover:shadow-lg transition-all duration-300 overflow-hidden max-w-3xl mx-auto"
+              className="group relative bg-white/70 backdrop-blur-sm rounded-2xl border border-white/80 p-4 sm:p-6 hover:shadow-lg transition-all duration-300 overflow-hidden max-w-3xl mx-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
               whileHover={{ scale: 1.02 }}
             >
-              <div className="pl-4">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold text-mid-blue bg-blue-50 px-2.5 py-1 rounded-full">{pub.year}</span>
-                    <span className="text-[16px] font-semibold text-ink">{pub.title}</span>
+              <div className="pl-3 sm:pl-4">
+                <div className="flex items-start justify-between gap-2 sm:gap-3 mb-3">
+                  <div className="flex items-start gap-2 sm:gap-3 min-w-0">
+                    <span className="text-xs font-semibold text-mid-blue bg-blue-50 px-2.5 py-1 rounded-full shrink-0">{pub.year}</span>
+                    <span className="text-[14px] sm:text-[16px] font-semibold text-ink">{pub.title}</span>
                   </div>
                   {pub.link && (
                     <a
                       href={pub.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-muted hover:text-mid-blue transition-colors shrink-0"
+                      className="text-muted hover:text-mid-blue transition-colors shrink-0 mt-0.5"
                     >
                       <ExternalLink size={16} />
                     </a>
                   )}
                 </div>
-                <p className="text-[13px] text-muted">{pub.authors} · <span className="italic">{pub.journal}</span></p>
+                <p className="text-[12px] sm:text-[13px] text-muted">{pub.authors} · <span className="italic">{pub.journal}</span></p>
               </div>
             </motion.div>
           ))}
@@ -231,23 +239,23 @@ function ResearchSection() {
           <p className="text-muted text-sm">talks &amp; accepted abstracts</p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {presentations.map((p, i) => (
             <motion.div
               key={i}
-              className="group relative bg-white/70 backdrop-blur-sm rounded-2xl border border-white/80 p-6 hover:shadow-lg transition-all duration-300 overflow-hidden max-w-3xl mx-auto"
+              className="group relative bg-white/70 backdrop-blur-sm rounded-2xl border border-white/80 p-4 sm:p-6 hover:shadow-lg transition-all duration-300 overflow-hidden max-w-3xl mx-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
               whileHover={{ scale: 1.02 }}
             >
-              <div className="pl-4">
-                <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="pl-3 sm:pl-4">
+                <div className="flex items-start justify-between gap-2 sm:gap-3 mb-3">
                   <div>
-                    <span className="text-[16px] font-semibold text-ink">{p.title}</span>
+                    <span className="text-[14px] sm:text-[16px] font-semibold text-ink">{p.title}</span>
                   </div>
                 </div>
-                <p className="text-[13px] text-muted">{p.venues}</p>
+                <p className="text-[12px] sm:text-[13px] text-muted">{p.venues}</p>
               </div>
             </motion.div>
           ))}
@@ -259,7 +267,7 @@ function ResearchSection() {
 
 function ProjectsSection() {
   return (
-    <div className="max-w-6xl mx-auto w-full">
+    <div className="max-w-6xl mx-auto w-full px-4 sm:px-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -270,11 +278,10 @@ function ProjectsSection() {
           <p className="text-muted text-sm">research-driven work &amp; tools</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {projects.map((proj, i) => (
             <motion.div
               key={i}
-              className={`${i % 2 === 0 ? 'col-start-1' : 'col-start-2'}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
@@ -284,7 +291,7 @@ function ProjectsSection() {
                 className="group relative bg-white/70 backdrop-blur-sm rounded-2xl border border-white/80 p-5 hover:shadow-lg transition-all duration-300 overflow-hidden mb-8"
                 whileHover={{ scale: 1.02 }}
               >
-                <div className={`${i % 2 === 0 ? 'pl-4' : 'pr-4'}`}>
+                <div className="pl-4">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
                       <span className="text-[16px] font-semibold text-ink">{proj.title}</span>
@@ -562,7 +569,7 @@ export default function App() {
       </motion.nav>
 
       {/* ── CONTENT ── */}
-      <main className="relative z-10 pt-32 pb-32 px-6 min-h-screen">
+      <main className="relative z-10 pt-20 sm:pt-28 lg:pt-32 pb-20 sm:pb-32 px-0 min-h-screen">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -580,7 +587,7 @@ export default function App() {
 
       {/* ── FOOTER ── */}
       <footer className={footerClassName}>
-        <div className="flex items-center justify-center gap-8 pb-8 pt-4">
+        <div className="flex items-center justify-center gap-4 sm:gap-6 lg:gap-8 pb-8 pt-4 flex-wrap px-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
