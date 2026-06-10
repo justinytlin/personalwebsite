@@ -546,6 +546,8 @@ body {
     }
 
     .nav-center { display: none; }
+
+    .arrow-emoji { display: none; }
 }
 
 @media (max-width: 520px) {
