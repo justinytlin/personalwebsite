@@ -245,6 +245,7 @@ function initAstronaut() {
     const NUM_COMETS = 7;
     const COMET_ANGLE = Math.PI * 0.75; // 135° — diagonal top-right → bottom-left
 
+    function startLoop() {
     (function loop() {
         const W = canvas.width, H = canvas.height;
         if (!W || !H) { requestAnimationFrame(loop); return; }
@@ -288,9 +289,9 @@ function initAstronaut() {
         }
 
         // Earth → Moon path
-        // Earth center (visible in panel): bottom-left ≈ (95, H-95); Moon: top-right ≈ (W-95, 190)
+        // Earth center (visible in panel): bottom-left ≈ (95, H-95); Moon: top-right corner
         const ex = 95, ey = H - 95;
-        const mx = W - 95, my = 190;
+        const mx = W - 75, my = H * 0.22;
 
         const PERIOD = 1600;                    // frames per one-way trip
         const u = (t % PERIOD) / PERIOD;        // 0 = earth, 1 = moon
@@ -339,7 +340,7 @@ function initAstronaut() {
 
         // Draw clipart image — fade out near moon so reappearance at earth is smooth
         if (img.complete && img.naturalWidth > 0) {
-            const alpha = u > 0.88 ? 1 - (u - 0.88) / 0.12 : 1;
+            const alpha = u > 0.96 ? 1 - (u - 0.96) / 0.04 : 1;
             const size = H * 0.28;
             const scale = size / Math.max(img.naturalWidth, img.naturalHeight);
             const iw = img.naturalWidth * scale;
@@ -354,9 +355,16 @@ function initAstronaut() {
         t++;
         requestAnimationFrame(loop);
     })();
+    } // end startLoop
+
+    Promise.all([
+        img.complete     ? Promise.resolve() : new Promise(r => { img.onload = r;      img.onerror = r; }),
+        cometImg.complete ? Promise.resolve() : new Promise(r => { cometImg.onload = r; cometImg.onerror = r; }),
+    ]).then(startLoop);
 }
 
 window.addEventListener('load', () => {
+    document.querySelectorAll('.moon-corner, .earth-corner').forEach(img => img.classList.add('loaded'));
     initSatellite();
     initAstronaut();
     const statDefs = [
