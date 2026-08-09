@@ -257,7 +257,13 @@ function initAstronaut() {
     const COMET_ANGLE = Math.PI * 0.75; // 135° — diagonal top-right → bottom-left
 
     function startLoop() {
-    (function loop() {
+    // Delta-time so the trip takes the same real time at any display refresh rate
+    let last = performance.now();
+    let prevU = 0;
+    (function loop(now) {
+        if (now === undefined) now = performance.now();
+        const dt = Math.min((now - last) / (1000 / 60), 3);
+        last = now;
         const W = cssW, H = cssH; // CSS-pixel space (see the DPR transform above)
         if (!W || !H) { requestAnimationFrame(loop); return; }
         ctx.clearRect(0, 0, W, H);
@@ -278,8 +284,8 @@ function initAstronaut() {
         if (cometImg.complete && cometImg.naturalWidth > 0) {
             const cdx = Math.cos(COMET_ANGLE), cdy = Math.sin(COMET_ANGLE);
             for (const c of comets) {
-                c.x += cdx * c.speed;
-                c.y += cdy * c.speed;
+                c.x += cdx * c.speed * dt;
+                c.y += cdy * c.speed * dt;
                 if (c.x < -60 || c.y > H + 60) {
                     // Respawn further out, with a randomized head start, so gaps
                     // between comets stay uneven instead of falling into a rhythm
@@ -312,8 +318,9 @@ function initAstronaut() {
         const PERIOD = 1600;                    // frames per one-way trip
         const u = (t % PERIOD) / PERIOD;        // 0 = earth, 1 = moon
 
-        // Clear trail when a new trip starts
-        if (t % PERIOD === 0) trail.length = 0;
+        // Clear trail when a new trip starts (u wrapped back toward 0)
+        if (u < prevU) trail.length = 0;
+        prevU = u;
 
         // Linear path from earth to moon
         const lx = ex + (mx - ex) * u;
@@ -369,7 +376,7 @@ function initAstronaut() {
             ctx.restore();
         }
 
-        t++;
+        t += dt;
         requestAnimationFrame(loop);
     })();
     } // end startLoop
@@ -724,7 +731,14 @@ function initGokuUltimate() {
     sheet.onload = function loopStart() {
         if (started) return;
         started = true;
-        (function loop() {
+        // Delta-time: ticks are 1/60s of *real time*, not one-per-frame, so the
+        // choreography runs at the same speed on 30/120Hz displays as on 60Hz.
+        // Clamped so a backgrounded tab resumes gently instead of fast-forwarding.
+        let last = performance.now();
+        (function loop(now) {
+            if (now === undefined) now = performance.now();
+            const dt = Math.min((now - last) / (1000 / 60), 3);
+            last = now;
             const W = canvas.width / dpr, H = canvas.height / dpr;
             if (!W || !H) { requestAnimationFrame(loop); return; }
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -753,7 +767,7 @@ function initGokuUltimate() {
             }
             if (groundTex) ctx.drawImage(groundTex, 0, H - GROUND_H);
 
-            stateT++;
+            stateT += dt;
             // Prologue (TRANSFORM-2 sheet order): down → stir → hair rises frame
             // by frame → aura burst → beat → scene cut into the attack run
             if (state === 'down') {
@@ -782,7 +796,7 @@ function initGokuUltimate() {
             } else if (state === 'launch') {
                 if (stateT > 6) { state = 'fire'; stateT = 0; }
             } else if (state === 'fire') {
-                beamLen += W * 0.09;
+                beamLen += W * 0.09 * dt;
                 if (beamLen >= Math.hypot(W, H) + 200) { state = 'hold'; stateT = 0; }
             } else if (state === 'hold') {
                 if (stateT > 85) { state = 'fade'; stateT = 0; }
@@ -843,7 +857,7 @@ function initGokuUltimate() {
                     // Aerial transformation, in parallel with Goku's on the ground:
                     // SSB hover during the quiet opening, then the power-up frames,
                     // then the full Ultra Ego aura flicker until he descends
-                    vegPreT++;
+                    vegPreT += dt;
                     let bob = 0;
                     if (vegPreT < 95) { vf = VT[0]; bob = Math.sin(tick * 0.07) * 4; }
                     else if (vegPreT < 95 + (VT.length - 1) * VT_TICKS) {
@@ -867,7 +881,7 @@ function initGokuUltimate() {
                 } else {
                     // Landed: the aura collapses through the crouch frames,
                     // then he rises into the arms-crossed stand
-                    vegLandT++;
+                    vegLandT += dt;
                     if (vegLandT < 12) vf = VLAND[0];
                     else if (vegLandT < 22) vf = VLAND[1];
                     else if (vegLandT < 32) vf = VLAND[2];
@@ -892,7 +906,7 @@ function initGokuUltimate() {
                     const distToVeg = Math.hypot((W - 50) - mx, (ground - 30) - cy);
                     if (mw + beamLen >= distToVeg) { vegHit = true; vegHitT = 0; }
                 }
-                if (vegHit) vegHitT++;
+                if (vegHit) vegHitT += dt;
                 ctx.save();
                 ctx.globalAlpha = blastAlpha * (firing ? (0.92 + 0.08 * Math.sin(tick * 0.9)) : 1);
                 ctx.translate(mx, cy);
@@ -911,7 +925,7 @@ function initGokuUltimate() {
                 ctx.restore();
             }
 
-            tick++;
+            tick += dt;
             requestAnimationFrame(loop);
         })();
     };
