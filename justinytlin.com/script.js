@@ -1110,11 +1110,21 @@ function initPage() {
             else window.addEventListener('load', r, { once: true });
         });
         const fontsReady = (document.fonts && document.fonts.ready) || Promise.resolve();
+        // The hero's corner images must be decoded before the loader lifts —
+        // otherwise the earth/moon pop in after "loading" claims to be done
+        const cornersReady = Promise.all(
+            [...document.querySelectorAll('.moon-corner, .earth-corner')].map(img =>
+                img.complete ? Promise.resolve()
+                             : new Promise(r => { // addEventListener: the imgs have
+                                 img.addEventListener('load', r, { once: true });  // inline
+                                 img.addEventListener('error', r, { once: true }); // onload handlers
+                             }))
+        );
         const minShow = new Promise(r => setTimeout(r, 500)); // no jarring flash on fast loads
         const failsafe = new Promise(r => setTimeout(r, 4000));
 
         Promise.race([
-            Promise.all([pageLoaded, fontsReady, astronautReady, minShow]),
+            Promise.all([pageLoaded, fontsReady, astronautReady, cornersReady, minShow]),
             failsafe,
         ]).then(() => {
             loader.classList.add('done');
