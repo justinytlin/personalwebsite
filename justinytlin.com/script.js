@@ -532,12 +532,13 @@ function initGokuUltimate() {
     // Touchdown: aura collapses through the crouch frames before he stands
     const VLAND = [[3196,37,72,80],[3271,68,53,49],[3327,70,27,47]];
     const VEG_HOVER_BOTTOM = 70;  // hover height (feet); descent interpolates from here to ground
-    const VT_TICKS = 16;          // ticks per aerial transformation frame
+    const VT_TICKS = 12;          // ticks per aerial transformation frame
+    const VEG_HOVER_T = 66;       // SSB hover beat before his transform kicks in
     const VEG_CX = (w) => w - 50; // one shared center axis for all of Vegeta's frames
     const SB = 0.62;          // blast scale
     const STAND_X = 26;       // where Goku charges on the ground
     const JUMP_T = 72;        // ticks to rise to the apex (slow, deliberate tumble)
-    const TRANS_TICKS = 14;   // ticks per transformation frame
+    const TRANS_TICKS = 11;   // ticks per transformation frame
     const JUMP_H = 44;        // apex height (px)
     const JUMP_DRIFT = 38;    // rightward drift while rising
 
@@ -771,17 +772,17 @@ function initGokuUltimate() {
             // Prologue (TRANSFORM-2 sheet order): down → stir → hair rises frame
             // by frame → aura burst → beat → scene cut into the attack run
             if (state === 'down') {
-                if (stateT > 55) { state = 'stir'; stateT = 0; }
+                if (stateT > 38) { state = 'stir'; stateT = 0; }
             } else if (state === 'stir') {
-                if (stateT > 40) { state = 'transform'; stateT = 0; }
+                if (stateT > 28) { state = 'transform'; stateT = 0; }
             } else if (state === 'transform') {
                 if (stateT >= TRANS.length * TRANS_TICKS) { state = 'burst'; stateT = 0; }
             } else if (state === 'burst') {
-                if (stateT > 63) { state = 'powered'; stateT = 0; }
+                if (stateT > 48) { state = 'powered'; stateT = 0; }
             } else if (state === 'powered') {
                 // Settle into the aura idle, then straight into the charge —
                 // the dash-in was cut so the aura never drops post-transform
-                if (stateT > 44) { state = 'charge'; stateT = 0; }
+                if (stateT > 32) { state = 'charge'; stateT = 0; }
             }
             // Attack run: charge on the ground → lean into the jump →
             // rise through the tumbles → instinct flash → launch → fire from the air
@@ -859,9 +860,9 @@ function initGokuUltimate() {
                     // then the full Ultra Ego aura flicker until he descends
                     vegPreT += dt;
                     let bob = 0;
-                    if (vegPreT < 95) { vf = VT[0]; bob = Math.sin(tick * 0.07) * 4; }
-                    else if (vegPreT < 95 + (VT.length - 1) * VT_TICKS) {
-                        vf = VT[Math.min(VT.length - 1, 1 + Math.floor((vegPreT - 95) / VT_TICKS))];
+                    if (vegPreT < VEG_HOVER_T) { vf = VT[0]; bob = Math.sin(tick * 0.07) * 4; }
+                    else if (vegPreT < VEG_HOVER_T + (VT.length - 1) * VT_TICKS) {
+                        vf = VT[Math.min(VT.length - 1, 1 + Math.floor((vegPreT - VEG_HOVER_T) / VT_TICKS))];
                     } else {
                         vf = VAURA[Math.floor(tick / 9) % 2];
                     }
