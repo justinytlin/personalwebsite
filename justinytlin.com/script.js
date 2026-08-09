@@ -946,13 +946,12 @@ function initTerminal() {
     const COMMANDS = {
         help: () => [
             '<span class="t-dim">Available commands:</span>',
-            '  <span class="t-cmd">about</span>       who I am',
-            '  <span class="t-cmd">education</span>   where I study',
+            '  <span class="t-cmd">about</span>       who i am',
+            '  <span class="t-cmd">education</span>   where i study',
             '  <span class="t-cmd">research</span>    labs + research work',
-            '  <span class="t-cmd">projects</span>    startups + things I build',
+            '  <span class="t-cmd">projects</span>    startups + things i build',
             '  <span class="t-cmd">pubs</span>        publications',
             '  <span class="t-cmd">awards</span>      honors + awards',
-            '  <span class="t-cmd">hobbies</span>     what I do off-duty',
             '  <span class="t-cmd">contact</span>     how to reach me',
             '  <span class="t-cmd">clear</span>       clear the screen',
         ],
@@ -1005,12 +1004,8 @@ function initTerminal() {
         contact: () => [
             `email    ${link('mailto:justinytlin4@gmail.com', 'justinytlin4@gmail.com')}`,
         ],
-        hobbies: () => [
-            'In my free time, I like playing tennis, going to the gym,',
-            'and speed solving Rubik\'s cubes.',
-        ],
         whoami: () => ['justin — but you can call me the guy on the rocket ↖'],
-        ls: () => ['<span class="t-cmd">about  education  research  projects  pubs  awards  hobbies  contact</span>'],
+        ls: () => ['<span class="t-cmd">about  education  research  projects  pubs  awards  contact</span>'],
         sudo: () => ['<span class="t-err">justin is not in the sudoers file. This incident will be reported.</span>'],
     };
 
