@@ -92,6 +92,7 @@ body {
 .page-grid {
     margin-top: var(--nav-h);
     height: calc(100vh - var(--nav-h));
+    height: calc(100svh - var(--nav-h)); /* stable on mobile: ignores URL-bar show/hide */
     overflow: hidden;
     display: grid;
     grid-template-columns: 58% 42%;
@@ -174,7 +175,7 @@ body {
     color: var(--black);
 }
 
-/* ── Stats panel (bottom-left after swap) ────────── */
+/* ── Stats panel (bottom-left) ───────────────────── */
 .stats-panel {
     grid-column: 1;
     grid-row: 2;
@@ -316,6 +317,17 @@ body {
     50%       { opacity: 0.15; }
 }
 
+/* Sprite animation strip — pinned to the panel floor on desktop (flex margin
+   trick), flows right after the links on mobile where height is auto */
+.sprite-strip {
+    display: block;
+    width: 100%;
+    height: 160px; /* terrain + a 3-grid-box sky (grid boxes are 48px) */
+    margin-top: auto;
+    flex-shrink: 0;
+    pointer-events: none;
+}
+
 .company-logo {
     height: 22px;
     width: auto;
@@ -386,37 +398,6 @@ body {
     opacity: 0.5;
 }
 
-.reveal-btn {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    color: var(--black);
-    background: transparent;
-    border: none;
-    padding: 0;
-    margin-top: 16px;
-    cursor: pointer;
-    transition: opacity 0.2s;
-    text-align: left;
-}
-
-.reveal-btn:hover {
-    opacity: 0.55;
-}
-
-.reveal-btn.revealed {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    cursor: default;
-}
-
-.reveal-btn.revealed:hover {
-    opacity: 1;
-}
-
 .scroll-arrow {
     font-size: 18px;
     color: var(--black);
@@ -435,29 +416,185 @@ body {
     50% { transform: translateY(5px); }
 }
 
-/* ── Orbital map panel (bottom-right) ───────────── */
-.map-panel {
-    grid-column: 2;
-    grid-row: 2;
-    padding: 20px 24px;
+/* ── Loading screen (spinning satellite) ─────────── */
+.loading-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: var(--white);
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    background: var(--white);
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    opacity: 1;
+    transition: opacity 0.45s ease;
 }
 
-.map-label {
+.loading-screen.done {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loading-screen canvas {
+    width: 200px;
+    height: 200px;
+    display: block;
+}
+
+.loading-label {
+    font-family: 'Space Mono', ui-monospace, monospace;
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.3em;
     color: var(--gray-text);
+    animation: loading-pulse 1.6s ease-in-out infinite;
 }
 
-.orbital-canvas {
-    width: 100%;
-    flex: 1;
-    display: block;
+@keyframes loading-pulse {
+    0%, 100% { opacity: 0.9; }
+    50%      { opacity: 0.3; }
+}
+
+/* ── Terminal panel (bottom-right) ───────────────── */
+.terminal-panel {
+    grid-column: 2;
+    grid-row: 2;
+    padding: 18px 22px;
+    background: var(--white);
+    display: flex;
     min-height: 0;
+}
+
+.terminal-window {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: #ffffff;
+    border-radius: 9px;
+    overflow: hidden;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.16);
+    border: 1.5px solid #cfcfcf;
+}
+
+.terminal-titlebar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 12px;
+    background: #ececec;
+    border-bottom: 1px solid #d4d4d4;
+}
+
+.tl-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+}
+
+.tl-red    { background: #ff5f57; }
+.tl-yellow { background: #febc2e; }
+.tl-green  { background: #28c840; }
+
+.terminal-title {
+    flex: 1;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: #7a7a7a;
+    /* keep the title optically centered despite the traffic lights */
+    margin-right: 43px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.terminal-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px 14px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #24292f;
+    cursor: text;
+    scrollbar-width: thin;
+    scrollbar-color: #c4c4c4 transparent;
+    overscroll-behavior: contain;
+}
+
+.terminal-body .t-line { white-space: pre-wrap; word-break: break-word; }
+
+.terminal-body .t-cmd    { color: #1a7f37; }
+.terminal-body .t-accent { color: #0969da; }
+.terminal-body .t-dim    { color: #6e7781; }
+.terminal-body .t-err    { color: #cf222e; }
+
+.terminal-body a {
+    color: #0969da;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.terminal-input-line {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    position: relative;
+}
+
+.terminal-prompt {
+    color: #1a7f37;
+    flex-shrink: 0;
+}
+
+#terminalInput {
+    flex: 1;
+    min-width: 40px;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #24292f;
+    caret-color: transparent; /* replaced by the block cursor below */
+    padding: 0;
+}
+
+/* Solid, non-blinking block cursor — macOS Terminal style. The character it
+   covers is redrawn inside it in reverse video, as the real terminal does. */
+.terminal-cursor {
+    position: absolute;
+    top: 0;
+    width: 0.85ch;
+    background: #6e7781;
+    color: #fff;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    white-space: pre;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* Unfocused: hollow outline, same as Terminal.app */
+.terminal-cursor.idle {
+    background: transparent;
+    color: transparent;
+    box-shadow: inset 0 0 0 1px #6e7781;
+}
+
+/* Offscreen ruler used to measure the caret's x-position */
+.terminal-mirror {
+    position: absolute;
+    visibility: hidden;
+    white-space: pre;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    pointer-events: none;
 }
 
 /* ── Scrollbar ───────────────────────────────────── */
@@ -483,7 +620,7 @@ body {
     .headline-panel,
     .stats-panel,
     .desc-panel,
-    .map-panel {
+    .terminal-panel {
         grid-column: 1;
         border-right: none;
     }
@@ -492,7 +629,8 @@ body {
         grid-row: 1;
         border-bottom: 1.5px solid var(--black);
         padding: 36px 24px 100px;
-        min-height: 72vh;
+        min-height: 56vh;
+        min-height: 56svh;
     }
 
     .desc-panel {
@@ -501,16 +639,23 @@ body {
         padding: 32px 24px;
     }
 
-    .stats-panel {
+    /* terminal sits above the publications list on mobile */
+    .terminal-panel {
         grid-row: 3;
+        height: 340px;
+        border-bottom: 1.5px solid var(--black);
+    }
+
+    .stats-panel {
+        grid-row: 4;
         border-bottom: 1.5px solid var(--black);
         padding: 20px 24px 24px;
     }
 
-    .map-panel {
-        grid-row: 4;
-        min-height: 300px;
-    }
+    /* 16px stops iOS from zooming in when the input is focused */
+    #terminalInput,
+    .terminal-mirror,
+    .terminal-cursor { font-size: 16px; }
 
     .headline { font-size: 2.4rem; }
 
@@ -557,14 +702,18 @@ body {
 
     .headline-panel {
         padding: 28px 18px 90px;
-        min-height: 68vh;
+        min-height: 54vh;
+        min-height: 54svh;
     }
 
     .desc-panel { padding: 24px 18px; }
 
     .stats-panel { padding: 16px 18px 20px; }
 
-    .map-panel { min-height: 260px; }
+    .loading-screen canvas {
+        width: 160px;
+        height: 160px;
+    }
 
     .navbar { padding: 0 16px; }
 

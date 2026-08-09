@@ -8,9 +8,16 @@
     <link rel="preload" as="image" href="public/astronautclipart.png">
     <link rel="preload" as="image" href="public/cometclipart.png">
     <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+
+    <div id="loadingScreen" class="loading-screen" role="status" aria-label="Loading">
+        <canvas id="orbitalCanvas"></canvas>
+        <span class="loading-label">LOADING</span>
+    </div>
 
     <nav class="navbar">
         <div class="nav-logo">
@@ -81,9 +88,6 @@
                 <p>
                     Hey! I'm Justin, I'm 19, and I'm a neuroscience student at UCLA passionate about bioinformatics, space exploration, and startups.
                 </p>
-                <p>
-                    In my free time, I like playing tennis, going to the gym, and speed solving Rubik's cubes.
-                </p>
                 <div class="project-links">
                     <div class="project-link-row">
                         <img src="public/BioscriptLogo.png" class="company-logo" alt="Bioscript">
@@ -94,13 +98,26 @@
                         <a href="https://startup.optra-labs.com" target="_blank" class="project-link">startup.optra-labs.com <span class="arrow-emoji">↗</span></a>
                     </div>
                 </div>
-                <button class="reveal-btn" id="contact" onclick="revealEmail(this)">[CLICK TO REVEAL EMAIL]</button>
             </div>
+            <canvas id="gokuCanvas" class="sprite-strip" aria-hidden="true"></canvas>
         </div>
 
-        <div class="panel map-panel">
-            <div class="map-label">ANIMATION I MADE</div>
-            <canvas id="orbitalCanvas" class="orbital-canvas"></canvas>
+        <div class="panel terminal-panel">
+            <div class="terminal-window">
+                <div class="terminal-titlebar">
+                    <span class="tl-dot tl-red"></span>
+                    <span class="tl-dot tl-yellow"></span>
+                    <span class="tl-dot tl-green"></span>
+                    <span class="terminal-title">justin@ucla — zsh</span>
+                </div>
+                <div class="terminal-body" id="terminalBody">
+                    <div id="terminalOutput"></div>
+                    <div class="terminal-input-line">
+                        <span class="terminal-prompt">justin@ucla:~$</span>
+                        <input type="text" id="terminalInput" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="terminal input">
+                    </div>
+                </div>
+            </div>
         </div>
 
     </div>
