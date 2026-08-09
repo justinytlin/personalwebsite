@@ -514,6 +514,12 @@ body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    /* the mobile input line has a 133% layout box (scaled back to 100% —
+       see the media query); hidden blocks users from panning to the phantom
+       space. (clip would also stop programmatic scroll, but computes to
+       hidden anyway when the other axis is auto.) Long typed commands scroll
+       inside the input itself, not this container. */
+    overflow-x: hidden;
     padding: 12px 14px 14px;
     font-family: 'Space Mono', monospace;
     font-size: 12px;
@@ -652,7 +658,18 @@ body {
         padding: 20px 24px 24px;
     }
 
-    /* 16px stops iOS from zooming in when the input is focused */
+    /* iOS force-zooms the page when a focused input's computed font-size is
+       under 16px. Render the whole input line at 16px, then scale it to 0.75
+       so it *looks* like the terminal's 12px text. Width compensates so the
+       scaled line still spans the terminal. The block cursor's measurements
+       all happen in the same pre-transform space, so they stay consistent. */
+    .terminal-input-line {
+        font-size: 16px;
+        width: 133.334%;
+        transform: scale(0.75);
+        transform-origin: 0 0;
+    }
+
     #terminalInput,
     .terminal-mirror,
     .terminal-cursor { font-size: 16px; }
