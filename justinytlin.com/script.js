@@ -226,11 +226,19 @@ function initAstronaut() {
     const trail = [];
     const TRAIL_MAX = 1700;
 
+    const ctx = canvas.getContext('2d');
+
+    // Backing store is scaled by DPR so the sprites stay sharp on retina, but a
+    // matching transform keeps all the drawing math below in CSS-pixel space
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let cssW = 0, cssH = 0;
     function setSize() {
         const w = canvas.offsetWidth, h = canvas.offsetHeight;
-        if (w > 0 && h > 0 && (w !== canvas.width || h !== canvas.height)) {
-            canvas.width = w;
-            canvas.height = h;
+        if (w > 0 && h > 0 && (w !== cssW || h !== cssH)) {
+            cssW = w; cssH = h;
+            canvas.width = Math.round(w * dpr);
+            canvas.height = Math.round(h * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // resizing resets this
             comets = null;
             trail.length = 0; // old trail points are invalid at the new size
         }
@@ -238,7 +246,6 @@ function initAstronaut() {
     setSize();
     window.addEventListener('resize', setSize);
 
-    const ctx = canvas.getContext('2d');
     let t = 0;
 
     const img = new Image();
@@ -251,7 +258,7 @@ function initAstronaut() {
 
     function startLoop() {
     (function loop() {
-        const W = canvas.width, H = canvas.height;
+        const W = cssW, H = cssH; // CSS-pixel space (see the DPR transform above)
         if (!W || !H) { requestAnimationFrame(loop); return; }
         ctx.clearRect(0, 0, W, H);
 
