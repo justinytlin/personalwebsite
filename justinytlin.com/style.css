@@ -611,6 +611,12 @@ body {
 
 /* ── Responsive ──────────────────────────────────── */
 @media (max-width: 900px) {
+    /* html included: iOS ignores overflow-x on body alone, and a single
+       overly-wide element would otherwise make phones open zoomed-in */
+    html {
+        overflow-x: hidden;
+    }
+
     body {
         overflow-x: hidden;
         overflow-y: auto;
@@ -659,20 +665,27 @@ body {
     }
 
     /* iOS force-zooms the page when a focused input's computed font-size is
-       under 16px. Render the whole input line at 16px, then scale it to 0.75
-       so it *looks* like the terminal's 12px text. Width compensates so the
-       scaled line still spans the terminal. The block cursor's measurements
-       all happen in the same pre-transform space, so they stay consistent. */
+       under 16px. Render the line at 16px but zoom it to 0.75 so it *looks*
+       like the terminal's 12px text. Unlike transform+width tricks, zoom
+       scales layout too — no oversized box, no page-widening overflow (which
+       made phones open the site slightly zoomed-in). */
     .terminal-input-line {
         font-size: 16px;
-        width: 133.334%;
-        transform: scale(0.75);
-        transform-origin: 0 0;
+        zoom: 0.75;
     }
 
     #terminalInput,
     .terminal-mirror,
     .terminal-cursor { font-size: 16px; }
+
+    /* No zoom support (Firefox Android) → just use 12px directly; Gecko
+       doesn't auto-zoom small inputs, so it's safe there */
+    @supports not (zoom: 1) {
+        .terminal-input-line { font-size: 12px; }
+        #terminalInput,
+        .terminal-mirror,
+        .terminal-cursor { font-size: 12px; }
+    }
 
     .headline { font-size: 2.4rem; }
 
