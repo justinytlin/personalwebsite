@@ -664,28 +664,11 @@ body {
         padding: 20px 24px 24px;
     }
 
-    /* iOS force-zooms the page when a focused input's computed font-size is
-       under 16px. Render the line at 16px but zoom it to 0.75 so it *looks*
-       like the terminal's 12px text. Unlike transform+width tricks, zoom
-       scales layout too — no oversized box, no page-widening overflow (which
-       made phones open the site slightly zoomed-in). */
-    .terminal-input-line {
-        font-size: 16px;
-        zoom: 0.75;
-    }
-
-    #terminalInput,
-    .terminal-mirror,
-    .terminal-cursor { font-size: 16px; }
-
-    /* No zoom support (Firefox Android) → just use 12px directly; Gecko
-       doesn't auto-zoom small inputs, so it's safe there */
-    @supports not (zoom: 1) {
-        .terminal-input-line { font-size: 12px; }
-        #terminalInput,
-        .terminal-mirror,
-        .terminal-cursor { font-size: 12px; }
-    }
+    /* The terminal input stays at its natural 12px on mobile. iOS's
+       focus auto-zoom (triggered by effective font sizes under 16px) is
+       suppressed via an iOS-only viewport maximum-scale set in script.js —
+       font-size/zoom hacks here either got detected anyway (zoom scales the
+       effective size iOS checks) or widened the page layout (transform). */
 
     .headline { font-size: 2.4rem; }
 

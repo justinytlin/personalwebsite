@@ -1106,8 +1106,23 @@ function initTerminal() {
     updateCursor();
 }
 
+// iOS Safari auto-zooms the page when focusing inputs whose effective font
+// size is under 16px (the 12px terminal input). maximum-scale=1 suppresses
+// that auto-zoom while leaving manual pinch-zoom intact — Safari has ignored
+// the cap for user gestures since iOS 10. iOS-only: Android *does* enforce
+// the cap on pinch (an accessibility loss) but never auto-zooms inputs.
+function preventIOSInputZoom() {
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS
+    if (!isIOS) return;
+    const vp = document.querySelector('meta[name="viewport"]');
+    if (vp) vp.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0';
+}
+
 // Start as soon as the DOM is ready — don't wait for fonts/analytics/images (window.load)
 function initPage() {
+    preventIOSInputZoom();
+
     // Corner images fade in via their inline onload; handle already-cached ones here
     document.querySelectorAll('.moon-corner, .earth-corner').forEach(img => {
         if (img.complete) img.classList.add('loaded');
