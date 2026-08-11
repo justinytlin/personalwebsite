@@ -553,49 +553,57 @@ function initGokuUltimate() {
         const c = g.getContext('2d');
         c.fillStyle = '#e6d09a';                       // sand base
         c.fillRect(0, 4, g.width, GROUND_H - 4);
-        // heavy two-tone sand dither in 2px blocks
+        // two-tone sand dither in 2px blocks
         for (let i = 0; i < g.width / 1.6; i++) {
             c.fillStyle = Math.random() < 0.6 ? '#d8bd7f' : '#f0dfae';
             c.fillRect(Math.floor(Math.random() * g.width / 2) * 2,
                 4 + Math.floor(Math.random() * (GROUND_H - 5) / 2) * 2, 2, 2);
         }
-        let x = 0;
+
+        // Continuous grass layer — grass is the dominant surface now, sand
+        // shows through in blended pockets rather than between hard islands
+        c.fillStyle = '#3f9c30';                       // dark under-layer
+        c.fillRect(0, 3, g.width, 6);
+        c.fillStyle = '#67c74b';                       // bright top
+        c.fillRect(0, 2, g.width, 5);
+        // internal grass texture: dark + light green blocks throughout
+        for (let i = 0; i < g.width / 1.8; i++) {
+            c.fillStyle = Math.random() < 0.55 ? '#3f9c30' : '#8ede5c';
+            c.fillRect(Math.floor(Math.random() * g.width / 2) * 2,
+                2 + Math.floor(Math.random() * 3) * 2, 2, 2);
+        }
+
+        // Sand pockets with feathered edges: dither density peaks at the
+        // pocket center and fades outward, so grass and dirt grade into
+        // each other instead of meeting at a cut line
+        let x = 20 + Math.random() * 60;
         while (x < g.width) {
-            const run = 26 + Math.random() * 80;
-            if (Math.random() < 0.8) {                 // grass patch
-                c.fillStyle = '#3f9c30';               // dark under-edge
-                c.fillRect(x, 3, run, 6);
-                c.fillStyle = '#67c74b';               // bright top
-                c.fillRect(x, 2, run, 5);
-                // internal dither: dark + light green blocks through the patch
-                for (let i = 0; i < run / 2.2; i++) {
-                    c.fillStyle = Math.random() < 0.55 ? '#3f9c30' : '#8ede5c';
-                    c.fillRect(x + Math.floor(Math.random() * run / 2) * 2,
-                        2 + Math.floor(Math.random() * 3) * 2, 2, 2);
-                }
-                for (let tx = x; tx < x + run - 2; tx += 3) { // jagged tufts
-                    if (Math.random() < 0.55) {
-                        c.fillStyle = Math.random() < 0.3 ? '#8ede5c' : '#67c74b';
-                        c.fillRect(tx, Math.random() < 0.5 ? 0 : 1, 2, 2);
+            const pw = 24 + Math.random() * 40;
+            const cx = x + pw / 2;
+            for (let px = Math.round(x / 2) * 2; px < x + pw; px += 2) {
+                const d = 1 - Math.abs(px - cx) / (pw / 2);   // 1 center → 0 edge
+                for (let py = 2; py <= 6; py += 2) {
+                    if (Math.random() < d * 0.85) {
+                        c.fillStyle = Math.random() < 0.7 ? '#e6d09a' : '#d8bd7f';
+                        c.fillRect(px, py, 2, 2);
                     }
                 }
-                // dithered grass→sand transition along the bottom edge
-                for (let tx = x; tx < x + run; tx += 2) {
-                    if (Math.random() < 0.5) {
-                        c.fillStyle = '#e6d09a';
-                        c.fillRect(tx, 8, 2, 2);
-                    }
-                }
-                // stepped patch ends instead of hard vertical cuts
-                c.fillStyle = '#e6d09a';
-                c.fillRect(x, 2, 2, 2); c.fillRect(x + run - 2, 2, 2, 2);
-            } else if (Math.random() < 0.4) {          // bare stretch: a small mound
-                c.fillStyle = '#cdb173';
-                const mx = x + run * 0.4;
-                c.fillRect(mx, 2, 8, 2);
-                c.fillRect(mx + 2, 1, 4, 1);
             }
-            x += run + 6 + Math.random() * 18;
+            x += pw + 70 + Math.random() * 130;
+        }
+
+        // blended grass→sand boundary: sand bleeding up, grass hanging down
+        for (let tx = 0; tx < g.width; tx += 2) {
+            if (Math.random() < 0.45) { c.fillStyle = '#e6d09a'; c.fillRect(tx, 8, 2, 2); }
+            if (Math.random() < 0.2)  { c.fillStyle = '#3f9c30'; c.fillRect(tx, 10, 2, 2); }
+        }
+
+        // jagged tufts along the whole top edge
+        for (let tx = 0; tx < g.width - 2; tx += 3) {
+            if (Math.random() < 0.55) {
+                c.fillStyle = Math.random() < 0.3 ? '#8ede5c' : '#67c74b';
+                c.fillRect(tx, Math.random() < 0.5 ? 0 : 1, 2, 2);
+            }
         }
         return g;
     }
