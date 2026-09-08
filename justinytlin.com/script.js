@@ -534,9 +534,12 @@ function initGokuUltimate() {
     const VEG_HOVER_BOTTOM = 70;  // hover height (feet); descent interpolates from here to ground
     const VT_TICKS = 12;          // ticks per aerial transformation frame
     const VEG_HOVER_T = 66;       // SSB hover beat before his transform kicks in
-    const VEG_CX = (w) => w - 50; // one shared center axis for all of Vegeta's frames
+    // How far each edge bluff reaches into the frame (scales with width so
+    // phones keep a clearing); the fighters' marks are derived from it
+    const BLUFF_REACH = (w) => Math.max(60, Math.min(110, w * 0.2));
+    const VEG_CX = (w) => w - BLUFF_REACH(w) - 34; // Vegeta's shared center axis, just inside the right bluff
     const SB = 0.62;          // blast scale
-    const STAND_X = 26;       // where Goku charges on the ground
+    const STAND_X = (w) => BLUFF_REACH(w) + 10; // where Goku charges, just inside the left bluff
     const JUMP_T = 72;        // ticks to rise to the apex (slow, deliberate tumble)
     const TRANS_TICKS = 11;   // ticks per transformation frame
     const JUMP_H = 44;        // apex height (px)
@@ -703,6 +706,201 @@ function initGokuUltimate() {
         return g;
     }
 
+    // Backdrop (DBZ wasteland): hazy far mesas on the horizon, closer
+    // flat-topped rock plateaus with teal grass caps framing both edges, and
+    // tall thin round-canopy trees standing on the caps. Static — only the
+    // clouds drift. Sits between the clouds and the terrain.
+    let backdropTex = null;
+    function buildBackdrop(w, h) {
+        const g = document.createElement('canvas');
+        g.width = Math.max(1, Math.round(w));
+        // Bases run 4px past the sky's bottom edge, under the terrain's grass,
+        // so rock meets ground with no sliver of sky showing between them
+        g.height = h + 4;
+        const c = g.getContext('2d');
+        const floor = h + 4;
+        const px = (x, y, wd, ht, col) => {
+            c.fillStyle = col;
+            c.fillRect(Math.round(x), Math.round(y), Math.round(wd), Math.round(ht));
+        };
+
+        // Rock formation. kind: 'flat' (mesa), 'spire' (tall thin pillar that
+        // flares at the foot), 'butte' (rounded, no cap). Sun is from the
+        // left: a lit strip on the left face, deep shadow on the right.
+        // Detail passes: sediment strata, cracks, scree at the base.
+        const mesa = (cx, wTop, ht, pal, kind = 'flat') => {
+            const rows = Math.floor(ht / 2);
+            const top = floor - ht;
+            const stratStep = 3 + Math.floor(Math.random() * 3);
+            const stratPhase = Math.floor(Math.random() * stratStep);
+            let notch = 0, notchSide = 1;
+            let baseX = cx, baseW = wTop;
+            for (let r = 0; r < rows; r++) {
+                const y = top + r * 2;
+                const t = r / rows;
+                let spread;
+                if (kind === 'spire')      spread = t * wTop * 0.15 + (t > 0.78 ? ((t - 0.78) / 0.22) * wTop * 0.9 : 0);
+                else if (kind === 'butte') spread = Math.pow(t, 0.6) * wTop * 0.55;
+                else                       spread = Math.pow(t, 1.7) * wTop * 0.4;
+                spread += Math.random() < 0.25 ? 2 : 0;
+                let wd = (kind === 'butte' ? 4 : wTop) + spread * 2;
+                let x = cx - wd / 2;
+                // eroded notch: one face pulls in for a few rows (an overhang)
+                if (notch === 0 && r > 2 && r < rows - 4 && Math.random() < 0.1) {
+                    notch = 2 + Math.floor(Math.random() * 3); notchSide = Math.random() < 0.5 ? -1 : 1;
+                }
+                if (notch > 0) { notch--; wd -= 3; if (notchSide < 0) x += 3; }
+                px(x, y, wd, 2, pal.rock);
+                if (pal.lit)   px(x, y, Math.max(2, wd * 0.2), 2, pal.lit);
+                if (pal.shade) px(x + wd * 0.64, y, wd * 0.36, 2, pal.shade);
+                if (pal.strata && (r + stratPhase) % stratStep === 0 && r > 0) px(x + 1, y + 1, wd - 2, 1, pal.strata);
+                if (r === rows - 1) { baseX = x; baseW = wd; }
+            }
+            if (kind !== 'butte') {                    // grass cap + shadow under it
+                const cw = kind === 'spire' ? wTop + 2 : wTop + 4;
+                px(cx - cw / 2, top - 4, cw, 4, pal.cap);
+                px(cx - cw / 2, top - 4, cw, 2, pal.capLight);
+                if (pal.crack) px(cx - wTop / 2, top, wTop, 1, pal.crack);
+                if (kind === 'flat') {                 // cap draping over the edges + tufts
+                    px(cx - wTop / 2 - 4, top - 2, 4, 5, pal.cap);
+                    px(cx + wTop / 2, top - 2, 4, 5, pal.cap);
+                    for (let i = 0; i < wTop / 7; i++) px(cx - wTop / 2 + Math.random() * wTop, top - 6, 2, 2, Math.random() < 0.5 ? pal.capLight : pal.cap);
+                }
+            } else if (pal.cap) {                      // butte: scattered grass on the dome
+                for (let i = 0; i < 4; i++) px(cx - 6 + Math.random() * 12, top + 2 + Math.random() * 6, 2, 2, pal.cap);
+            }
+            if (pal.crack) {                           // cracks running down the faces
+                const n = 1 + Math.floor(rows / 7);
+                for (let i = 0; i < n; i++) {
+                    const cxk = cx - wTop * 0.3 + Math.random() * wTop * 0.6;
+                    const cy = top + 6 + Math.random() * Math.max(2, ht - 16);
+                    const ch = 4 + Math.random() * 9;
+                    px(cxk, cy, 1, ch, pal.crack);
+                    if (Math.random() < 0.5) px(cxk + 1, cy + ch * 0.5, 1, ch * 0.5, pal.crack); // forked
+                }
+                // scree: rubble at the foot
+                for (let i = 0; i < 3 + baseW / 20; i++) {
+                    px(baseX - 4 + Math.random() * (baseW + 8), floor - 2 - Math.floor(Math.random() * 2) * 2, 2, 2,
+                       Math.random() < 0.5 ? pal.shade : pal.crack);
+                }
+            }
+        };
+
+        // Two-tier bluff: a lower shoulder mesa with a taller mesa stepping up
+        // from one side of it (the reference's stepped plateaus)
+        const tiered = (cx, w, ht, pal) => {
+            const side = Math.random() < 0.5 ? -1 : 1;
+            mesa(cx + side * w * 0.22, w * 0.8, ht * (0.5 + Math.random() * 0.15), pal, 'flat');
+            mesa(cx - side * w * 0.16, w * 0.55, ht, pal, 'flat');
+        };
+
+        // Boulder on the ground: small rounded rock with a lit top
+        const boulder = (x, r, pal) => {
+            for (let yy = 0; yy <= r; yy++) {
+                const half = Math.floor(Math.sqrt(r * r - (yy - r) * (yy - r) * 0.7));
+                px(x - half, floor - r + yy, half * 2, 1, yy < 2 ? pal.lit : (yy > r * 0.6 ? pal.shade : pal.rock));
+            }
+        };
+
+        // Tall thin tree: dark trunk, round blue canopy with a darker outline
+        const tree = (x, baseY, trunkH, r) => {
+            px(x, baseY - trunkH, 2, trunkH, '#2b3a55');
+            const cy = baseY - trunkH - r + 1;
+            for (let yy = -r; yy <= r; yy++) {
+                const half = Math.floor(Math.sqrt(r * r - yy * yy));
+                px(x + 1 - half, cy + yy, half * 2, 1, '#2f6f8f');
+            }
+            for (let yy = -(r - 1); yy <= r - 1; yy++) {
+                const half = Math.floor(Math.sqrt((r - 1) * (r - 1) - yy * yy));
+                px(x + 1 - half, cy + yy, half * 2, 1, yy < 0 ? '#67c6e2' : '#4ea6d2');
+            }
+        };
+
+        // Distant range: the farthest, palest layer — taller shapes nearly
+        // dissolved into the sky, drawn first so everything sits in front
+        const distant = { rock: '#cfe2e8', lit: '#dbeaee', shade: '#c3d9df', strata: '#c8dde3',
+                          crack: null, cap: '#bcd9de', capLight: '#c9e2e6' };
+        const distKinds = ['butte', 'butte', 'flat', 'spire'];
+        const distN = 3 + Math.floor(g.width / 130);
+        for (let i = 0; i < distN; i++) {
+            const cx = (i + 0.5) * (g.width / distN) + (Math.random() - 0.5) * 60;
+            const kind = distKinds[Math.floor(Math.random() * distKinds.length)];
+            const wd = kind === 'spire' ? 7 + Math.random() * 5 : 30 + Math.random() * 36;
+            mesa(cx, wd, 22 + Math.random() * (kind === 'spire' ? 26 : 20), distant, kind);
+        }
+
+        // Far, hazy formations along the horizon — a mix of silhouettes,
+        // desaturated toward the sky, faint strata only
+        const haze = { rock: '#bdd8dd', lit: '#c9e0e4', shade: '#afcfd5', strata: '#b6d3d9',
+                       crack: null, cap: '#a6cfd6', capLight: '#b8dde2' };
+        const farKinds = ['flat', 'flat', 'butte', 'spire'];
+        const farN = 4 + Math.floor(g.width / 130);
+        for (let i = 0; i < farN; i++) {
+            const cx = (i + 0.5) * (g.width / farN) + (Math.random() - 0.5) * 50;
+            const kind = farKinds[Math.floor(Math.random() * farKinds.length)];
+            const wd = kind === 'spire' ? 6 + Math.random() * 5 : 22 + Math.random() * 30;
+            mesa(cx, wd, 12 + Math.random() * (kind === 'spire' ? 22 : 12), haze, kind);
+        }
+
+        // Near formations framing the scene: stepped bluffs on the edges (the
+        // reference's plateaus), a rock spire or two, a butte, and boulders
+        const near = { rock: '#c99f68', lit: '#dcb67f', shade: '#a8804d', strata: '#b78f5b',
+                       crack: '#8a663c', cap: '#4fb3bd', capLight: '#7ad6dc' };
+        // The bluffs are centered just off-canvas so only their inner faces
+        // show; the fighters stand in the open ground between them
+        // Bluff footprints are sized so their bases reach BLUFF_REACH into the
+        // frame (a mesa base spans ~0.9x its cap width each way, and the
+        // center sits 10% of the width past the edge)
+        const reach = BLUFF_REACH(g.width);
+        const lw = reach / 0.8, lh = 62 + Math.random() * 18;
+        const lx = -lw * 0.1;
+        if (Math.random() < 0.6) tiered(lx, lw, lh, near); else mesa(lx, lw, lh, near, 'flat');
+        const rw = lw * (0.9 + Math.random() * 0.1), rh = 56 + Math.random() * 18; // ≤ lw so it never reaches Vegeta's mark
+        const rx = g.width + rw * 0.1;
+        if (Math.random() < 0.6) tiered(rx, rw, rh, near); else mesa(rx, rw, rh, near, 'flat');
+
+        // Mid-distance formations go in the gap between the fighters' zones
+        // (Goku's run drifts right during the jump; Vegeta's frames are ~60 wide)
+        const gapA = STAND_X(g.width) + JUMP_DRIFT + 68;
+        const gapB = VEG_CX(g.width) - 40;
+        const span = gapB - gapA;
+        if (span > 90) {
+            mesa(gapA + span * 0.25, 8 + Math.random() * 5, 34 + Math.random() * 22, near, 'spire');
+            mesa(gapA + span * 0.68, 26 + Math.random() * 12, 16 + Math.random() * 8, near, 'butte');
+        } else if (span > 24) {
+            mesa(gapA + span * 0.5, 7 + Math.random() * 4, 30 + Math.random() * 18, near, 'spire');
+        }
+
+        // boulders on the ground
+        for (let i = 0; i < 2 + Math.floor(g.width / 200); i++) {
+            boulder(g.width * (0.15 + Math.random() * 0.7), 3 + Math.floor(Math.random() * 3), near);
+        }
+
+        // Trees on the bluff caps — the tall thin ones from the reference.
+        // Tiered bluffs put the taller mesa off-center, so probe the actual
+        // cap height at each x instead of assuming a flat top.
+        const capYAt = (x) => {
+            const col = c.getImageData(Math.max(0, Math.min(g.width - 1, Math.round(x))), 0, 1, floor).data;
+            for (let y = 0; y < floor; y++) if (col[y * 4 + 3] > 0) return y;
+            return floor;
+        };
+        const plant = (x, trunkH, r) => {
+            x = Math.max(r + 2, Math.min(g.width - r - 2, x)); // keep the canopy in frame
+            const y = capYAt(x);
+            if (y < floor - 8) tree(x, y + 4, trunkH, r);
+        };
+        // planted on the visible inner portions of each bluff
+        plant(reach * 0.1 + Math.random() * 6, 16 + Math.random() * 8, 5);
+        plant(reach * 0.35 + Math.random() * 8, 20 + Math.random() * 8, 6);
+        plant(reach * 0.62 + Math.random() * 8, 14 + Math.random() * 6, 5);
+        if (Math.random() < 0.5) plant(reach * 0.84, 22 + Math.random() * 6, 5);
+        plant(g.width - reach * 0.12 - Math.random() * 6, 18 + Math.random() * 8, 6);
+        plant(g.width - reach * 0.38 - Math.random() * 8, 14 + Math.random() * 6, 5);
+        plant(g.width - reach * 0.64 - Math.random() * 8, 24 + Math.random() * 6, 5);
+        if (Math.random() < 0.5) plant(g.width - reach * 0.86, 16 + Math.random() * 6, 5);
+        return g;
+    }
+
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     function setSize() {
         const w = Math.round(canvas.offsetWidth * dpr), h = Math.round(canvas.offsetHeight * dpr);
@@ -712,6 +910,7 @@ function initGokuUltimate() {
             groundTex = buildGround(canvas.offsetWidth);
             skyTex = buildSky(canvas.offsetWidth, canvas.offsetHeight - GROUND_H);
             cloudTex = buildClouds(canvas.offsetWidth, canvas.offsetHeight - GROUND_H);
+            backdropTex = buildBackdrop(canvas.offsetWidth, canvas.offsetHeight - GROUND_H);
         }
     }
     setSize();
@@ -724,7 +923,7 @@ function initGokuUltimate() {
     function reset() {
         // The loop opens on the TRANSFORM-2 sequence: Goku is down, rises,
         // and powers up to Ultra Instinct before the attack run begins
-        gokuX = STAND_X;
+        gokuX = STAND_X(canvas.offsetWidth || 400);
         state = 'down';
         stateT = 0; tick = 0;
         beamLen = 0; blastAlpha = 1;
@@ -774,6 +973,7 @@ function initGokuUltimate() {
                 ctx.drawImage(cloudTex, -off, 0); // cycling between loops
                 ctx.drawImage(cloudTex, W - off, 0);
             }
+            if (backdropTex) ctx.drawImage(backdropTex, 0, 0);
             if (groundTex) ctx.drawImage(groundTex, 0, H - GROUND_H);
 
             stateT += dt;
@@ -825,7 +1025,7 @@ function initGokuUltimate() {
             const airborne = ['flash', 'launch', 'fire', 'hold', 'fade'].includes(state);
             if (state === 'jump') {
                 lift = JUMP_H * Math.sin((Math.PI / 2) * Math.min(stateT / JUMP_T, 1));
-                gokuX = STAND_X + JUMP_DRIFT * Math.min(stateT / JUMP_T, 1);
+                gokuX = STAND_X(W) + JUMP_DRIFT * Math.min(stateT / JUMP_T, 1);
             } else if (airborne) {
                 lift = JUMP_H;
             } else if (state === 'drop') {
@@ -912,7 +1112,7 @@ function initGokuUltimate() {
 
                 // The beam front reaching Vegeta is what knocks him down
                 if (!vegHit && (state === 'fire' || state === 'hold')) {
-                    const distToVeg = Math.hypot((W - 50) - mx, (ground - 30) - cy);
+                    const distToVeg = Math.hypot(VEG_CX(W) - mx, (ground - 30) - cy);
                     if (mw + beamLen >= distToVeg) { vegHit = true; vegHitT = 0; }
                 }
                 if (vegHit) vegHitT += dt;
@@ -989,7 +1189,7 @@ function initTerminal() {
         ],
         projects: () => [
             `<span class="t-accent">Bioscript</span> — founder &amp; CEO. AI copilot for academic papers. ${link('https://bioscriptai.com', 'bioscriptai.com')}`,
-            `<span class="t-accent">OPTRA Labs</span> — CTO, founding engineer. ${link('https://startup.optra-labs.com', 'startup.optra-labs.com')}`,
+            `<span class="t-accent">OPTRA Labs</span> — CTO, founding engineer. ${link('https://optra-labs.com', 'optra-labs.com')}`,
             '<span class="t-accent">CruX Neurotech</span> — led 5-person team building a motor-imagery',
             '  EEG classifier controlling a multi-grasp prosthetic hand',
         ],
