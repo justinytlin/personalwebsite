@@ -1166,8 +1166,10 @@ function initTerminal() {
         about: () => [
             '<span class="t-accent">Justin Lin</span> — 19, neuroscience student at UCLA.',
             'Passionate about bioinformatics, space exploration, and startups.',
-            'Cleft palate patient turned patient advocate (Operation Smile,',
-            'Ensuring Lasting Smiles Act). Off-duty: tennis, gym, speedcubing.',
+            'Having been born with a bilateral cleft lip and palate, I\'m also',
+            'interested in public health advocacy and clinical research. My',
+            'current dream is to become an astronaut! In my free time, I like',
+            'playing tennis, going to the gym, and speed solving Rubik\'s cubes...',
         ],
         education: () => [
             '<span class="t-accent">University of California, Los Angeles</span> (2025–2029)',
@@ -1200,13 +1202,11 @@ function initTerminal() {
             '   <span class="t-dim">(medRxiv, 2025)</span>',
             '3. Alveolar Bone Grafts vs Orthognathic Surgery on Cleft Palate',
             '   Speech <span class="t-dim">(J. Emerging Investigators, 2024)</span>',
-            '4. Surgery &amp; Paediatric Medical Traumatic Stress <span class="t-dim">(Medic Mentor, 2024)</span>',
-            '5. Cleft Palate Development: Epigenetic Influences <span class="t-dim">(ASHG, 2024)</span>',
+            '4. Cleft Palate Development: Epigenetic Influences <span class="t-dim">(ASHG, 2024)</span>',
             '<span class="t-dim">Full citations in the PUBLICATIONS panel ←</span>',
         ],
         awards: () => [
             '· 2025 Regeneron Science Talent Search (STS) Scholar',
-            '· 2025 Cameron Impact Scholarship Finalist',
             '· Eagle Scout — Certificate of Congressional Recognition',
         ],
         contact: () => [
