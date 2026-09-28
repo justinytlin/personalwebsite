@@ -319,13 +319,28 @@ body {
 
 /* Sprite animation strip — pinned to the panel floor on desktop (flex margin
    trick), flows right after the links on mobile where height is auto */
-.sprite-strip {
-    display: block;
+.sprite-stage {
+    position: relative;
     width: 100%;
     height: 160px; /* terrain + a 3-grid-box sky (grid boxes are 48px) */
     margin-top: auto;
     flex-shrink: 0;
     pointer-events: none;
+}
+
+/* The fight scenes stack and take turns; the active one fades in over the other */
+.sprite-strip {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.9s ease;
+}
+
+.sprite-strip.active {
+    opacity: 1;
 }
 
 .company-logo {

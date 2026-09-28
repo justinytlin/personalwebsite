@@ -919,7 +919,7 @@ function initGokuUltimate() {
     const sheet = new Image();
     sheet.src = 'public/goku-sprites.png';
 
-    let gokuX, state, stateT, tick, beamLen, blastAlpha, vegHit, vegHitT, vegPreT, vegLandT;
+    let gokuX, state, stateT, tick, beamLen, blastAlpha, vegHit, vegHitT, vegPreT, vegLandT, ended;
     function reset() {
         // The loop opens on the TRANSFORM-2 sequence: Goku is down, rises,
         // and powers up to Ultra Instinct before the attack run begins
@@ -928,6 +928,7 @@ function initGokuUltimate() {
         stateT = 0; tick = 0;
         beamLen = 0; blastAlpha = 1;
         vegHit = false; vegHitT = 0; vegPreT = 0; vegLandT = 0;
+        ended = false;
     }
     reset();
 
@@ -935,7 +936,15 @@ function initGokuUltimate() {
         ctx.drawImage(sheet, f[0], f[1], f[2], f[3], x, ground - f[3], f[2], f[3]);
     }
 
-    let started = false;
+    // Scene rotation hooks: onEnd fires once the fight finishes; the page then
+    // cross-fades to the next scene, pauses this loop, and restarts it later
+    const ctl = {
+        canvas,
+        onEnd: null,
+        pause() { paused = true; },
+        restart() { reset(); paused = false; if (runLoop) runLoop(); },
+    };
+    let started = false, running = false, paused = false, runLoop = null;
     sheet.onload = function loopStart() {
         if (started) return;
         started = true;
@@ -943,7 +952,8 @@ function initGokuUltimate() {
         // choreography runs at the same speed on 30/120Hz displays as on 60Hz.
         // Clamped so a backgrounded tab resumes gently instead of fast-forwarding.
         let last = performance.now();
-        (function loop(now) {
+        function loop(now) {
+            if (paused) { running = false; return; }
             if (now === undefined) now = performance.now();
             const dt = Math.min((now - last) / (1000 / 60), 3);
             last = now;
@@ -1017,7 +1027,9 @@ function initGokuUltimate() {
             } else if (state === 'stand') {
                 if (stateT > 14) { state = 'wait'; stateT = 0; }
             } else if (state === 'wait') {
-                if (stateT > 95) reset();
+                // Hand off to the next scene; loop alone if nothing's listening
+                if (ctl.onEnd) { if (!ended) { ended = true; ctl.onEnd(); } }
+                else if (stateT > 95) reset();
             }
 
             // Height above ground: rises during the jump, hovers while firing, falls after
@@ -1136,9 +1148,724 @@ function initGokuUltimate() {
 
             tick += dt;
             requestAnimationFrame(loop);
-        })();
+        }
+        runLoop = () => {
+            if (running) return;
+            running = true;
+            last = performance.now();
+            loop();
+        };
+        runLoop();
     };
     if (sheet.complete && sheet.naturalWidth > 0) sheet.onload();
+    return ctl;
+}
+
+// Sage Mode Naruto vs Pain (Tendo) in the Shinra Tensei crater, the scene
+// that alternates with the Goku fight in the desc-panel strip.
+// public/naruto-pain-sprites.png is baked from pegasuSword's JUS Sage Naruto
+// sheet and SasoriFan-XD's Pain sheet (Tendo section, mirrored to face left).
+// Frames are [x, y, w, h, anchorX]: anchorX is where the feet (or, for
+// airborne frames, the body) sit, so sprites of different widths stay put.
+function initNarutoPain() {
+    const canvas = document.getElementById('narutoCanvas');
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d');
+
+    const N_STANCE = [[0,0,41,52,17],[42,0,44,53,20],[87,0,41,52,17],[129,0,39,52,15]];
+    const N_RUN = [[169,0,41,47,20],[211,0,45,46,25],[257,0,38,46,21],[296,0,40,46,21],[337,0,45,47,23],[383,0,43,46,24],[427,0,39,46,22],[467,0,42,46,22]];
+    const N_JUMP = [[510,0,34,43,17],[545,0,39,51,16],[585,0,39,51,17],[625,0,42,52,25],[668,0,40,52,23],[709,0,37,43,19],[747,0,39,35,21],[787,0,34,43,17]];
+    const N_GUARD = [[822,0,38,50,14],[861,0,33,45,8],[895,0,34,48,10]];
+    const N_HURT = [[930,0,37,51,14],[968,0,38,47,12],[0,54,42,44,15]];
+    const N_KO = [[43,54,57,33,30],[101,54,57,30,28],[159,54,56,28,28],[216,54,56,31,27],[273,54,53,34,24],[327,54,40,36,23],[368,54,53,15,24],[422,54,33,27,18],[456,54,49,28,21],[506,54,51,46,24],[558,54,32,39,19]];
+    const N_COMBO1 = [[591,54,33,54,9],[625,54,49,50,13],[675,54,52,49,12],[728,54,51,49,12],[780,54,51,44,35],[832,54,65,40,32],[898,54,44,37,23],[943,54,33,47,17]];
+    const SPARK = [[977,54,18,20,10],[0,109,29,27,15],[30,109,35,29,17],[66,109,40,34,17],[107,109,40,26,17],[148,109,44,31,14],[193,109,32,22,22],[226,109,40,27,10]];
+    const SMOKE = [[267,109,46,37,22],[314,109,45,53,22],[360,109,45,53,23],[406,109,44,50,24],[451,109,40,46,22]];
+    const N_SIGN = [[492,109,36,52,12],[529,109,36,52,12],[566,109,35,52,11],[602,109,34,52,10]];
+    const N_OODAMA = [[637,109,36,47,12],[674,109,38,43,12],[713,109,45,44,12],[759,109,41,52,17],[801,109,44,53,20],[846,109,41,52,17],[888,109,39,52,15],[928,109,48,43,9],[0,163,49,42,9],[50,163,56,40,5],[107,163,54,41,2],[162,163,52,41,16],[215,163,56,40,20]];
+    const ORB = [[272,163,30,36,19],[303,163,30,34,4],[334,163,12,12,5],[347,163,16,16,7],[364,163,24,24,11],[389,163,40,40,19]];
+    const IMPACT = [[430,163,66,70,32],[497,163,66,70,32],[564,163,66,70,32],[631,163,78,78,38],[710,163,64,70,31]];
+    const SHRINK = [[775,163,40,40,19],[816,163,40,40,19],[857,163,28,28,13],[886,163,16,16,7],[903,163,14,14,6],[918,163,10,10,4]];
+    const N_WIN = [[929,163,37,43,15],[967,163,39,35,26],[0,242,34,41,17]];
+    const P_INTRO = [[35,242,149,62,66],[185,242,140,72,60],[326,242,153,85,68],[480,242,173,98,79],[654,242,187,97,90],[842,242,35,44,18]];
+    const P_STANCE = [[878,242,27,65,14],[906,242,28,65,14],[935,242,28,65,14],[964,242,27,65,14]];
+    const P_BLOCK = [[992,242,30,59,21]];
+    const P_JUMP = [[0,341,30,66,15],[31,341,30,66,15],[62,341,38,57,17],[101,341,36,57,16]];
+    const P_CROUCH = [[138,341,35,44,18]];
+    const P_HURT = [[174,341,49,58,28],[224,341,33,54,18],[258,341,51,54,23],[310,341,60,30,27],[371,341,69,20,36],[441,341,35,44,17]];
+    const P_COMBO = [[477,341,29,66,19],[507,341,29,65,19],[537,341,49,62,42],[587,341,38,64,30],[626,341,38,64,30],[665,341,35,65,19],[701,341,33,65,19],[735,341,33,59,22],[769,341,62,59,54],[832,341,68,61,46],[901,341,73,61,51],[0,408,79,61,57]];
+    const P_RUNATK = [[80,408,51,46,40],[132,408,46,49,38],[179,408,54,58,46],[234,408,44,57,36],[279,408,39,57,30],[319,408,39,57,30]];
+    const P_BANSHO = [[359,408,53,65,40],[413,408,45,65,32]];
+    const P_RUN = [[459,408,58,49,24],[518,408,44,50,19],[563,408,46,51,19],[610,408,55,53,20],[666,408,42,52,22],[709,408,50,51,20]];
+    const P_SHINRA = [[760,408,76,65,40],[837,408,60,65,32]];
+    const P_CHIBAKU = [[898,408,27,65,14],[926,408,27,65,14],[954,408,28,65,14],[983,408,31,65,14],[0,474,27,65,14],[28,474,26,65,14],[55,474,25,65,14],[81,474,25,65,14],[107,474,26,65,14],[134,474,29,65,18],[164,474,27,65,16]];
+    const SPHERE = [[192,474,13,8,6],[206,474,40,34,20],[247,474,69,97,51],[317,474,69,93,20],[387,474,69,93,28],[457,474,69,101,47],[527,474,69,100,39],[597,474,69,93,41],[667,474,69,93,30],[737,474,69,104,38],[807,474,69,93,40],[877,474,69,105,36],[947,474,69,93,42],[0,580,69,97,46],[70,580,74,99,46],[145,580,69,103,34],[215,580,69,98,35],[285,580,69,92,36],[355,580,69,72,34]];
+
+    // Choreography, in ticks (1/60s), ~20s. Loosely follows episodes 163–167:
+    // Tendo lands in the crater and Naruto arrives by summoning; they clash
+    // mid-field and Tendo's rod combo knocks Naruto down; Shinra Tensei blows
+    // his clones away; Tendo's Chibaku Tensei swallows Naruto into a sphere of
+    // rock until he blasts it apart from inside; then Bansho Ten'in pulls him
+    // straight into a point-blank Oodama Rasengan.
+    const BEATS = [
+        ['open', 30], ['painIntro', 66], ['arrive', 48], ['stare', 36],
+        ['clash', 34], ['painSlash', 28], ['combo1', 40], ['counter', 44], ['knockback', 46], ['getup', 30], ['painHop', 26],
+        ['clones', 50], ['cloneRush', 32], ['shinra', 52], ['recover', 20],
+        ['chibaku', 56], ['chibakuPull', 90], ['trapped', 44], ['burst', 72],
+        ['oodama', 52], ['pull', 22], ['impact', 64], ['launch', 50], ['victory', 90],
+    ];
+
+    const GROUND_H = 14;
+    const NX0 = (w) => Math.max(64, w * 0.27);           // Naruto's mark
+    const PX0 = (w) => Math.min(w - 60, w * 0.73);       // Tendo's mark
+    const SPHERE_X = (w) => w * 0.5;                     // Chibaku Tensei hangs over mid-field,
+    const SPHERE_Y = 36;                                 // its core this far below the top
+
+    // --- Backdrop: Konoha after Shinra Tensei -------------------------------
+    // Overcast sky over the crater, built in depth layers back to front: a hazy
+    // far rim with the village's remains along it, two stepped terrace walls
+    // curving up toward the edges, dark near mounds framing the corners, and
+    // blast rings with radial cracks across the floor.
+    const SKY = ['#a3b7c6', '#b1c2cf', '#bfcbd4', '#cbd3d8', '#d5d9da'];
+    let skyTex = null, groundTex = null;
+    function buildBackdrop(w, h) {
+        const g = document.createElement('canvas');
+        g.width = Math.max(1, Math.round(w));
+        g.height = h + 4;
+        const c = g.getContext('2d');
+        const W2 = g.width, floor = h + 4, cx = W2 / 2;
+        const px = (x, y, wd, ht, col) => { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.round(wd), Math.round(ht)); };
+        // a bowl contour: lowest at center, rising toward both edges
+        const bowl = (x, base, amp, pw) => base - amp * Math.pow(Math.abs(x - cx) / (W2 / 2), pw);
+
+        // banded, dithered overcast sky
+        const bandH = Math.ceil(h / SKY.length);
+        SKY.forEach((s, i) => px(0, i * bandH, W2, bandH, s));
+        for (let i = 1; i < SKY.length; i++) {
+            for (let row = -2; row <= 1; row++) {
+                for (let x = 0; x < W2; x += 3) {
+                    if (((x / 3) + row) % 2 !== 0) continue;
+                    px(x, i * bandH + row * 3, 3, 3, row < 0 ? SKY[i] : SKY[i - 1]);
+                }
+            }
+        }
+        // flat grey cloud banks
+        for (let i = 0; i < 3 + W2 / 160; i++) {
+            const x0 = Math.random() * W2, y0 = 10 + Math.random() * h * 0.35, cw = 40 + Math.random() * 60;
+            c.globalAlpha = 0.35;
+            for (let r = 0; r < 4; r++) px(x0 - (cw - r * 12) / 2 + Math.random() * 4, y0 - r * 3, cw - r * 12, 3, r % 2 ? '#e4e7e8' : '#eef0f0');
+            c.globalAlpha = 1;
+        }
+
+        // A dirt layer between a contour and the floor: dithered fill, a lit
+        // lip, a shadow band under it, and strata that follow the contour
+        const layer = (topAt, pal, strataGap, shadowH) => {
+            const tops = [];
+            for (let x = 0; x < W2; x += 2) {
+                const top = Math.round(topAt(x));
+                tops.push(top);
+                px(x, top, 2, floor - top, pal.fill);
+                for (let y = top + 4; y < floor; y += 3) {
+                    if (Math.random() < 0.22) px(x, y, 2, 2, Math.random() < 0.5 ? pal.dark : pal.light);
+                }
+                px(x, top, 2, 2, pal.lip);
+                px(x, top + 2, 2, shadowH, pal.shadow);                  // ledge shadow
+                if (Math.random() < 0.4) px(x, top + 2 + shadowH, 2, 1, pal.shadow);
+                for (let k = 1; top + 2 + shadowH + k * strataGap < floor; k++) {
+                    if (Math.random() < 0.65) px(x, top + 2 + shadowH + k * strataGap + ((x >> 3) % 2), 2, 1, pal.dark);
+                }
+            }
+            return (x) => tops[Math.max(0, Math.min(tops.length - 1, Math.floor(x / 2)))];
+        };
+        // a ruined house on a contour; alpha fades the far ones into the haze
+        const wreck = (x, base, scale, pal) => {
+            const ww = (10 + Math.random() * 10) * scale, wh = (5 + Math.random() * 6) * scale;
+            px(x, base - wh, ww, wh, pal.wall);
+            px(x + ww * 0.6, base - wh, ww * 0.4, wh, pal.wallShade);
+            if (scale > 0.7) px(x + 2, base - wh + 2, 3, 3, pal.hole);
+            for (let i = 0; i < ww + 4; i += 2) {
+                px(x - 2 + i, base - wh - 2 - Math.round(i * (Math.random() < 0.5 ? 0.25 : 0.15)), 2, 2, i % 4 ? pal.roof : pal.roofDark);
+            }
+            for (let k = 0; k < 2; k++) {                                   // snapped beams
+                const bx = x + Math.random() * ww, len = (5 + Math.random() * 6) * scale;
+                for (let i = 0; i < len; i++) px(bx + i * 0.6, base - wh - i, 1, 1, pal.beam);
+            }
+        };
+        const boulder = (x, base, r, pal) => {
+            for (let yy = 0; yy <= r; yy++) {
+                const half = Math.floor(Math.sqrt(r * r - (yy - r) * (yy - r) * 0.7));
+                px(x - half, base - r + yy, half * 2, 1, yy < 2 ? pal.lip : (yy > r * 0.6 ? pal.shadow : pal.light));
+            }
+        };
+
+        // 1. far horizon: a hazy tree line and the far side of the crater
+        const farBase = h - 60;
+        for (let x = 0; x < W2; x += 2) {
+            const top = farBase - 8 - Math.round(3 * Math.abs(Math.sin(x * 0.19)) + 2 * Math.abs(Math.sin(x * 0.07)));
+            px(x, top, 2, farBase - top + 4, '#9aaea4');
+            if (Math.random() < 0.3) px(x, top, 2, 1, '#a8bbb1');
+        }
+        const farPal = { fill: '#cbc2ae', dark: '#c2b8a3', light: '#d3cbb9', lip: '#ddd6c6', shadow: '#bdb39e' };
+        const farTop = layer((x) => bowl(x, farBase, 12, 2) + (Math.random() < 0.3 ? -1 : 0), farPal, 7, 1);
+        const hazePal = { wall: '#c9c2b4', wallShade: '#bdb6a8', hole: '#a39b8c', roof: '#bf9f93', roofDark: '#b39286', beam: '#a49a8a' };
+        for (let x = 6; x < W2 - 10; x += 16 + Math.random() * 22) wreck(x, farTop(x) + 1, 0.55, hazePal);
+
+        // 2. first terrace: a long, shallow step across the whole bowl
+        const midPal = { fill: '#b3966e', dark: '#a0835c', light: '#bea37b', lip: '#d0b68c', shadow: '#846a4a' };
+        const midTop = layer((x) => bowl(x, h - 38, 34, 2.2) + (Math.random() < 0.3 ? -1 : 0), midPal, 5, 3);
+        const midWreck = { wall: '#c4ad86', wallShade: '#ae9772', hole: '#5a4935', roof: '#a3513c', roofDark: '#8a4331', beam: '#65503a' };
+        for (let x = 4; x < W2 * 0.34; x += 22 + Math.random() * 18) wreck(x, midTop(x) + 2, 0.8, midWreck);
+        for (let x = W2 - 20; x > W2 * 0.66; x -= 22 + Math.random() * 18) wreck(x, midTop(x) + 2, 0.8, midWreck);
+
+        // 3. inner terrace: steep walls that only rise near the edges
+        const nearPal = { fill: '#8f704b', dark: '#79603f', light: '#9c7d56', lip: '#b89468', shadow: '#5b4430' };
+        const nearTop = layer((x) => bowl(x, h - 12, 84, 3) + (Math.random() < 0.3 ? -1 : 0), nearPal, 4, 4);
+        const nearWreck = { wall: '#cbb58c', wallShade: '#b39d76', hole: '#4a3c2c', roof: '#a64a33', roofDark: '#8a3a28', beam: '#5b4431' };
+        for (const x of [W2 * 0.03, W2 * 0.11, W2 * 0.86, W2 * 0.94]) {
+            if (nearTop(x) < h - 24) wreck(x, nearTop(x) + 2, 1, nearWreck);
+        }
+
+        // 4. dark mounds right at the corners — the closest layer
+        const moundPal = { fill: '#6b5238', dark: '#5a432d', light: '#775c40', lip: '#8a6c4b', shadow: '#4c3825' };
+        const reach = Math.min(90, W2 * 0.16);
+        const edge = (x) => Math.max(0, 1 - Math.min(x, W2 - x) / reach);
+        const moundTops = [];
+        for (let x = 0; x < W2; x += 2) {
+            const e = edge(x);
+            moundTops.push(e > 0 ? Math.round(floor - 4 - 58 * Math.pow(e, 1.6) + (Math.random() < 0.3 ? -1 : 0)) : floor);
+        }
+        for (let i = 0; i < moundTops.length; i++) {
+            const x = i * 2, top = moundTops[i];
+            if (top >= floor) continue;
+            px(x, top, 2, floor - top, moundPal.fill);
+            for (let y = top + 4; y < floor; y += 3) if (Math.random() < 0.25) px(x, y, 2, 2, Math.random() < 0.5 ? moundPal.dark : moundPal.light);
+            px(x, top, 2, 2, moundPal.lip);
+            px(x, top + 2, 2, 1, moundPal.shadow);
+        }
+        const moundAt = (x) => moundTops[Math.max(0, Math.min(moundTops.length - 1, Math.floor(x / 2)))];
+        for (const x of [reach * 0.3, reach * 0.62, W2 - reach * 0.3, W2 - reach * 0.62]) {
+            const top = moundAt(x);
+            if (top < floor - 10) boulder(x, top + 3, 4 + Math.floor(Math.random() * 3), { lip: '#9a948a', light: '#7d776d', shadow: '#5d5850' });
+        }
+        // splintered posts jutting from the mounds
+        for (const x of [reach * 0.45, W2 - reach * 0.45]) {
+            const top = moundAt(x), lean = x < cx ? 0.4 : -0.4;
+            for (let i = 0; i < 14; i++) px(x + i * lean, top - i, 2, 1, i > 11 ? '#8a6e52' : '#4f3a27');
+        }
+
+        // 5. crater floor: blast rings around the impact point and radial cracks
+        const fy = floor - 2;
+        for (let k = 1; k <= 4; k++) {
+            const rx = W2 * 0.12 * k, ry = 5 + k * 5;
+            for (let a = Math.PI; a < Math.PI * 2; a += 0.02) {
+                const x = cx + Math.cos(a) * rx, y = fy + Math.sin(a) * ry;
+                if (y < midTop(x) + 4 || Math.random() < 0.35) continue;
+                px(x, y, 2, 1, k % 2 ? '#8f7250' : '#b69a72');
+            }
+        }
+        for (let i = 0; i < 9; i++) {
+            const ang = Math.PI + (i + 0.5) * Math.PI / 9;
+            let x = cx, y = fy;
+            for (let st = 0; st < 26; st++) {
+                x += Math.cos(ang) * 4 + (Math.random() - 0.5) * 2;
+                y += Math.sin(ang) * 1.2;
+                if (y < midTop(x) + 3) break;
+                px(x, y, 2, 1, '#7a5f40');
+            }
+        }
+        // rubble and splintered planks across the floor
+        for (let i = 0; i < W2 / 12; i++) {
+            const x = Math.random() * W2, y = h - 34 + Math.random() * 36;
+            if (y < midTop(x) + 4 || y > moundAt(x) - 2) continue;
+            const sz = 2 + Math.floor(Math.random() * 2) * 2;
+            px(x, y, sz, sz - 1, Math.random() < 0.5 ? '#77705f' : '#6a5540');
+            px(x, y, sz, 1, '#978e7a');
+        }
+        for (let i = 0; i < W2 / 50; i++) {
+            const x = Math.random() * W2, y = h - 18 + Math.random() * 18;
+            if (y > moundAt(x) - 2) continue;
+            px(x, y, 6 + Math.random() * 6, 1, '#6e5238');
+        }
+        return g;
+    }
+    function buildGround(w) {
+        const g = document.createElement('canvas');
+        g.width = Math.max(1, Math.round(w));
+        g.height = GROUND_H;
+        const c = g.getContext('2d');
+        const px = (x, y, wd, ht, col) => { c.fillStyle = col; c.fillRect(x, y, wd, ht); };
+        px(0, 2, g.width, GROUND_H - 2, '#8f6f4b');
+        px(0, 2, g.width, 2, '#a9875d');
+        for (let i = 0; i < g.width * 1.2; i++) {
+            px(Math.floor(Math.random() * g.width / 2) * 2, 2 + Math.floor(Math.random() * (GROUND_H - 3) / 2) * 2, 2, 2,
+               Math.random() < 0.5 ? '#7c5e3e' : '#a07e56');
+        }
+        // cracks radiating through the packed earth
+        for (let x = 10 + Math.random() * 30; x < g.width; x += 40 + Math.random() * 60) {
+            let cx = x, cy = 4;
+            for (let i = 0; i < 8; i++) { px(Math.round(cx), cy, 2, 1, '#5e4630'); cx += Math.random() * 4 - 1; cy += 1; }
+        }
+        // pebbles poking up over the edge
+        for (let x = 0; x < g.width; x += 3) if (Math.random() < 0.18) px(x, 0, 2, 2, Math.random() < 0.5 ? '#77705f' : '#a9875d');
+        return g;
+    }
+
+    const sheet = new Image();
+    sheet.src = 'public/naruto-pain-sprites.png';
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function setSize() {
+        const w = Math.round(canvas.offsetWidth * dpr), h = Math.round(canvas.offsetHeight * dpr);
+        if (w > 0 && h > 0 && (canvas.width !== w || canvas.height !== h)) {
+            canvas.width = w;
+            canvas.height = h;
+            skyTex = buildBackdrop(canvas.offsetWidth, canvas.offsetHeight - GROUND_H);
+            groundTex = buildGround(canvas.offsetWidth);
+        }
+    }
+    setSize();
+    window.addEventListener('resize', setSize);
+
+    // --- Drawing helpers ------------------------------------------------------
+    // fr: frame at time t (tpf ticks per frame), looping or holding the last
+    const fr = (a, t, tpf, loop) => {
+        const i = Math.floor(Math.max(0, t) / tpf);
+        return a[loop ? i % a.length : Math.min(a.length - 1, i)];
+    };
+    // put: character frame with its anchor at x, feet at bottom
+    function put(f, x, bottom, a = 1) {
+        ctx.globalAlpha = a;
+        ctx.drawImage(sheet, f[0], f[1], f[2], f[3], Math.round(x - f[4]), Math.round(bottom - f[3]), f[2], f[3]);
+        ctx.globalAlpha = 1;
+    }
+    // fx: effect frame centered on (cx, cy), optionally scaled
+    function fx(f, cx, cy, s = 1, a = 1) {
+        const w = Math.round(f[2] * s), h = Math.round(f[3] * s);
+        ctx.globalAlpha = a;
+        ctx.drawImage(sheet, f[0], f[1], f[2], f[3], Math.round(cx - w / 2), Math.round(cy - h / 2), w, h);
+        ctx.globalAlpha = 1;
+    }
+    // smoke puff sitting on the ground at x
+    const puff = (x, ground, t, s = 1) => {
+        if (t < 0 || t >= SMOKE.length * 7) return;
+        const f = fr(SMOKE, t, 7, false);
+        fx(f, x, ground - f[3] * s / 2, s, t > 24 ? 1 - (t - 24) / 12 : 1);
+    };
+    const ease = (p) => { p = Math.max(0, Math.min(1, p)); return p * p * (3 - 2 * p); };
+    const lerp = (a, b, p) => a + (b - a) * p;
+
+    // --- Scene state ------------------------------------------------------------
+    let bi, bt, tick, nx, px, nLift, pLift, clones, rocks, pulledFrom, launchFrom, kbFrom, pFrom, impactX, ended;
+    function reset() {
+        const W = canvas.offsetWidth || 400;
+        bi = 0; bt = 0; tick = 0;
+        nx = NX0(W); px = PX0(W);
+        nLift = 0; pLift = 0;
+        clones = []; rocks = [];
+        ended = false;
+    }
+    reset();
+
+    const beat = () => BEATS[bi][0];
+    function enter(name, W, ground) {
+        if (name === 'clash' || name === 'knockback' || name === 'chibakuPull') kbFrom = nx;
+        if (name === 'clash' || name === 'painHop') pFrom = px;
+        else if (name === 'clones') clones = [];
+        else if (name === 'shinra') {
+            for (let i = 0; i < 16; i++) {
+                const dir = i % 2 ? 1 : -1;
+                rocks.push({ x: px + dir * (4 + Math.random() * 10), y: ground - 2, vx: dir * (1 + Math.random() * 2.6),
+                             vy: -1.5 - Math.random() * 2.5, s: 2 + Math.floor(Math.random() * 2), life: 70 });
+            }
+        }
+        else if (name === 'pull') pulledFrom = nx;
+        else if (name === 'impact') impactX = px - 4;
+        else if (name === 'launch') launchFrom = px;
+        else if (name === 'burst') {
+            // the sphere bursts: its rock shell rains back down
+            for (let i = 0; i < 34; i++) {
+                const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 2.5;
+                rocks.push({ x: SPHERE_X(W) + Math.cos(a) * 18, y: SPHERE_Y + Math.sin(a) * 18, vx: Math.cos(a) * sp,
+                             vy: Math.sin(a) * sp - 1.5, s: 2 + Math.floor(Math.random() * 3), life: 90 });
+            }
+        }
+        else if (name === 'landDust') {
+            for (let i = 0; i < 8; i++) rocks.push({ x: px + (Math.random() - 0.5) * 16, y: ground - 2, vx: (Math.random() - 0.5) * 2.4,
+                                                     vy: -1 - Math.random() * 1.5, s: 2, life: 40, dust: true });
+        }
+    }
+
+    const ctl = {
+        canvas,
+        onEnd: null,
+        ready: () => sheet.complete && sheet.naturalWidth > 0,
+        pause() { paused = true; },
+        restart() { reset(); paused = false; if (runLoop) runLoop(); },
+    };
+    let running = false, paused = true, runLoop = null;
+
+    function loop(now) {
+        if (paused) { running = false; return; }
+        if (now === undefined) now = performance.now();
+        const dt = Math.min((now - last) / (1000 / 60), 3);
+        last = now;
+        const W = canvas.width / dpr, H = canvas.height / dpr;
+        if (!W || !H) { requestAnimationFrame(loop); return; }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingEnabled = false;
+        ctx.clearRect(0, 0, W, H);
+        const ground = H - GROUND_H + 4;
+
+        // advance the choreography
+        bt += dt;
+        while (bi < BEATS.length - 1 && bt >= BEATS[bi][1]) {
+            bt -= BEATS[bi][1];
+            bi++;
+            enter(beat(), W, ground);
+        }
+        const b = beat();
+        if (b === 'victory' && bt >= BEATS[bi][1] && !ended) {
+            ended = true;
+            if (ctl.onEnd) ctl.onEnd(); else reset();
+        }
+
+        // screen shake on the big hits
+        let shake = 0;
+        if (b === 'shinra' && bt < 30) shake = 2.2 * (1 - bt / 30);
+        if (b === 'chibakuPull') shake = 1.2;
+        if (b === 'trapped') shake = 1.2 + bt / 30;
+        if (b === 'burst' && bt < 30) shake = 2.8;
+        if (b === 'impact') shake = bt < 60 ? 3 : 1.4;
+        if (shake) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake * 0.6);
+
+        if (skyTex) ctx.drawImage(skyTex, 0, 0);
+        if (groundTex) ctx.drawImage(groundTex, 0, H - GROUND_H);
+        let gloom = 0;
+        if (b === 'chibaku') gloom = 0.22 * ease((bt - 20) / 36);
+        else if (b === 'chibakuPull' || b === 'trapped') gloom = 0.22;
+        else if (b === 'burst') gloom = 0.22 * (1 - ease(bt / 50));
+        if (gloom > 0) { ctx.globalAlpha = gloom; ctx.fillStyle = '#1b1430'; ctx.fillRect(-4, -4, W + 8, H + 8); ctx.globalAlpha = 1; }
+
+        // ---- per-beat poses -------------------------------------------------
+        let nf = N_STANCE[Math.floor(tick / 9) % 4], pf = P_STANCE[Math.floor(tick / 10) % 4];
+        let showN = true, showP = true, pJit = 0;
+        const handX = () => nx + 16, handY = ground - 27;
+
+        switch (b) {
+        case 'open':
+            showN = showP = false;
+            break;
+        case 'painIntro':
+            showN = false;
+            pf = fr(P_INTRO, bt, 12, false);
+            break;
+        case 'arrive':
+            if (bt < 14) pf = P_INTRO[5];
+            showN = bt > 8;
+            break;
+        case 'clash': {
+            // both charge; they meet a little right of center
+            const meet = W * 0.52;
+            const p = ease(bt / BEATS[bi][1]);
+            nx = lerp(kbFrom, meet - 30, p);
+            px = lerp(pFrom, meet + 14, p);
+            nf = fr(N_RUN, bt, 4, true);
+            pf = fr(P_RUN, bt, 4, true);
+            break;
+        }
+        case 'painSlash':
+            // Tendo strikes first; Naruto guards and skids back
+            pf = fr(P_RUNATK, bt, 5, false);
+            nf = bt < 10 ? N_GUARD[0] : N_GUARD[bt < 22 ? 1 : 2];
+            if (bt > 10 && bt < 22) nx -= 0.9 * dt;
+            break;
+        case 'combo1':
+            nf = fr(N_COMBO1, bt, 5, false);
+            pf = P_BLOCK[0];
+            if (bt < 12) nx += 0.8 * dt;
+            if (bt > 15 && bt < 34) px += 0.22 * dt;
+            break;
+        case 'counter':
+            pf = fr(P_COMBO, bt, 4, false);
+            nf = bt < 34 ? N_GUARD[bt < 8 ? 0 : 1] : fr(N_HURT, bt - 34, 5, false);
+            if (bt >= 34) nx -= 0.5 * dt;
+            break;
+        case 'knockback': {
+            const p = Math.min(bt / 32, 1);
+            nx = lerp(kbFrom, NX0(W), ease(p));
+            nLift = p < 1 ? Math.sin(Math.PI * p) * 24 : 0;
+            nf = p < 1 ? fr(N_KO, bt, 6, false) : N_KO[6];
+            if (p < 1 && nf === N_KO[6]) nf = N_KO[5];
+            pf = bt < 10 ? P_COMBO[11] : pf;
+            break;
+        }
+        case 'getup':
+            nf = bt < 32 ? [N_KO[7], N_KO[8], N_KO[9], N_KO[10]][Math.min(3, Math.floor(bt / 8))] : nf;
+            break;
+        case 'painHop': {
+            // Tendo leaps back to his mark to make room
+            const p = bt / BEATS[bi][1];
+            px = lerp(pFrom, PX0(W), ease(p));
+            pLift = Math.sin(Math.PI * p) * 26;
+            pf = p < 0.5 ? P_JUMP[0] : (p < 0.9 ? P_JUMP[2] : P_CROUCH[0]);
+            break;
+        }
+        case 'clones': {
+            nf = fr(N_SIGN, bt, 8, false);
+            if (bt >= 20 && clones.length === 0) {
+                clones = [nx + 32, nx + 62].map(x => ({ x, start: x, t0: bt, hit: -1, gone: false }));
+            }
+            break;
+        }
+        case 'cloneRush':
+            if (bt >= 18) pf = P_SHINRA[0];
+            break;
+        case 'shinra':
+            pf = P_SHINRA[bt < 44 ? 1 : 0];
+            break;
+        case 'chibaku':
+            // Tendo raises a hand and flings a tiny black core into the sky
+            pf = bt < 35 ? fr(P_CHIBAKU.slice(0, 5), bt, 7, false) : fr(P_CHIBAKU.slice(5, 9), bt, 6, true);
+            if (bt > 28) nf = N_GUARD[0];
+            break;
+        case 'chibakuPull': {
+            // the core swells, tearing up the ground, and drags Naruto up into it
+            pf = fr(P_CHIBAKU.slice(5, 9), bt, 6, true);
+            const p = ease((bt - 14) / 70);
+            nx = lerp(kbFrom, SPHERE_X(W), p);
+            nLift = lerp(0, ground - 26 - SPHERE_Y, p) + (p > 0 && p < 1 ? Math.sin(tick * 0.2) * 1.5 : 0);
+            nf = p > 0 ? fr(N_HURT, bt, 6, true) : N_GUARD[0];
+            showN = p < 0.97;                          // swallowed by the sphere
+            if (Math.random() < 0.5 * dt) {
+                rocks.push({ x: Math.random() * W, y: ground - 2, s: 2 + Math.floor(Math.random() * 2), life: 120, up: true });
+            }
+            break;
+        }
+        case 'trapped':
+            // sealed inside; light starts leaking through the cracks
+            pf = fr(P_CHIBAKU.slice(5, 9), bt, 6, true);
+            showN = false;
+            break;
+        case 'burst': {
+            // a Rasengan blows the sphere apart from inside; Naruto drops out
+            // and lands back on his side of the field, Tendo staggers
+            const top = ground - 26 - SPHERE_Y;
+            const p = Math.min(Math.max(0, bt - 10) / 26, 1);
+            nx = lerp(SPHERE_X(W), Math.max(NX0(W), SPHERE_X(W) - 50), ease(p));
+            nLift = top * (1 - p * p);
+            nf = bt < 10 ? N_OODAMA[12] : p < 1 ? (p < 0.6 ? N_JUMP[5] : N_JUMP[6]) : (bt < 46 ? N_JUMP[7] : nf);
+            pf = bt < 30 ? fr([P_HURT[0], P_HURT[1]], bt, 6, true) : pf;
+            if (p >= 1 && bt - dt < 36) { const t = px; px = nx; enter('landDust', W, ground); px = t; }
+            break;
+        }
+        case 'oodama':
+            nf = fr([N_OODAMA[0], N_OODAMA[1], N_OODAMA[2], N_OODAMA[1], N_OODAMA[2], N_OODAMA[3], N_OODAMA[4], N_OODAMA[5], N_OODAMA[6]], bt, 8, false);
+            if (bt >= 22) pf = P_BANSHO[bt < 40 ? 0 : 1];
+            break;
+        case 'pull': {
+            const p = bt / BEATS[bi][1];
+            nx = lerp(pulledFrom, px - 34, p * p);
+            nLift = Math.sin(Math.PI * p) * 6;
+            nf = p < 0.5 ? N_OODAMA[8] : N_OODAMA[9];
+            pf = P_BANSHO[1];
+            break;
+        }
+        case 'impact':
+            nLift = 0;
+            nf = fr([N_OODAMA[11], N_OODAMA[12]], bt, 4, true);
+            pf = fr([P_HURT[0], P_HURT[1]], bt, 5, true);
+            pJit = (Math.random() - 0.5) * 3;
+            break;
+        case 'launch': {
+            const p = Math.min(bt / 30, 1);
+            px = lerp(launchFrom, Math.min(launchFrom + 70, W - 34), 1 - Math.pow(1 - p, 2));
+            pLift = p < 1 ? Math.sin(Math.PI * p) * 28 : 0;
+            pf = p < 1 ? P_HURT[2] : (bt < 42 ? P_HURT[3] : P_HURT[4]);
+            nf = bt < 14 ? N_OODAMA[12] : nf;
+            if (p >= 1 && bt - dt < 30) enter('landDust', W, ground); // dust where he hits the dirt
+            break;
+        }
+        case 'victory':
+            nf = fr(N_WIN, bt, 12, false);
+            pf = P_HURT[4];
+            break;
+        }
+
+        // ---- draw: clones, Tendo, Naruto, then effects on top ---------------
+        for (const c of clones) {
+            if (c.gone) continue;
+            const ct = b === 'clones' ? bt - c.t0 : 99;
+            if (b === 'clones') { if (ct > 6) put(N_STANCE[Math.floor(tick / 9) % 4], c.x, ground, 0.95); puff(c.x, ground, ct); continue; }
+            if (b === 'cloneRush') {
+                // the far clone leads; the near one follows a beat later, a step behind
+                const lead = c.start - nx > 40;
+                c.x = lerp(c.start, px - (lead ? 36 : 52), ease((bt - (lead ? 0 : 6)) / 30));
+                put(fr([N_OODAMA[7], N_OODAMA[8]], tick, 4, true), c.x, ground);
+                const o = ORB[4]; fx(o, c.x + 18, ground - 24, 0.8);
+            } else if (b === 'shinra') {
+                const r = bt * 5.5;
+                if (c.hit < 0 && r >= px - c.x - 8) c.hit = bt;
+                if (c.hit < 0) { put(N_OODAMA[8], c.x, ground); fx(ORB[4], c.x + 18, ground - 24, 0.8); }
+                else {
+                    const ht = bt - c.hit;
+                    if (ht < 10) { c.x -= 3 * dt; put(N_HURT[2], c.x, ground - Math.sin(ht / 10 * Math.PI) * 8); }
+                    puff(c.x, ground, ht - 6, 0.9);
+                    if (ht > 40) c.gone = true;
+                }
+            } else c.gone = true;
+        }
+
+        if (showP) put(pf, px + pJit, ground - pLift);
+        if (showN) put(nf, nx, ground - nLift);
+
+        // summoning puff for Naruto's arrival
+        if (b === 'arrive') puff(nx, ground, bt, 1.1);
+
+        // taijutsu hit sparks
+        if (b === 'combo1' && ((bt > 15 && bt < 27) || (bt > 27 && bt < 39))) fx(fr(SPARK, (bt - 15) % 12, 2, false), px - 12, ground - 34, 0.7);
+        if (b === 'painSlash' && bt > 10 && bt < 26) fx(fr(SPARK, bt - 10, 2, false), nx + 12, ground - 30, 0.7);
+
+        if (b === 'counter' && bt > 34 && bt < 48) fx(fr(SPARK, bt - 34, 2, false), nx + 10, ground - 30, 0.8);
+
+        // Shinra Tensei: repulsion wave rolling out from Tendo
+        if (b === 'shinra') {
+            const r = bt * 5.5, a = Math.max(0, 1 - bt / 48);
+            if (a > 0) {
+                const cx = px, cy = ground - 30;
+                ctx.globalAlpha = a * 0.18;
+                ctx.fillStyle = '#eef2ff';
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+                ctx.globalAlpha = a;
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+                ctx.strokeStyle = '#c9c2ff'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(cx, cy, r * 0.72, 0, Math.PI * 2); ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+            if (nx > px - r - 6 && bt < 30) nx -= 0.6 * dt;      // the real Naruto braces and skids
+        }
+
+        // Chibaku Tensei: the core flies up, then swells into a planet of rock
+        const SX = SPHERE_X(W);
+        if (b === 'chibaku' && bt >= 24) {
+            const q = ease((bt - 24) / 26);
+            fx(SPHERE[0], lerp(px - 6, SX, q), lerp(ground - 70, SPHERE_Y, q), 1);
+        }
+        if (b === 'chibakuPull' || b === 'trapped' || (b === 'burst' && bt < 4)) {
+            const t = b === 'chibakuPull' ? bt : 999;
+            const f = fr(SPHERE.slice(1), t, 5, false);
+            const j = b === 'trapped' ? Math.round((Math.random() - 0.5) * (1 + bt / 20)) : 0;
+            ctx.drawImage(sheet, f[0], f[1], f[2], f[3], Math.round(SX - f[2] / 2) + j, Math.round(SPHERE_Y - 30), f[2], f[3]);
+        }
+        // blue chakra light cracking through the rock, more rays as it builds
+        if (b === 'trapped') {
+            const rays = 2 + Math.floor(bt / 5);
+            for (let k = 0; k < rays; k++) {
+                const a = k * 2.39996, len = Math.min(30, 6 + (bt - k * 4) * 1.2);
+                if (len <= 6) continue;
+                ctx.globalAlpha = 0.7 + 0.3 * Math.sin(tick * 0.6 + k);
+                for (let i = 6; i < len; i += 1) {
+                    const x = SX + Math.cos(a) * i + Math.sin(i * 0.9 + k) * 1.2, y = SPHERE_Y + Math.sin(a) * i * 0.9;
+                    ctx.fillStyle = i < len - 3 ? '#e8fbff' : '#7fd8f5';
+                    ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+                }
+            }
+            fx(ORB[3], SX, SPHERE_Y, 1 + bt / 30, 0.25 + bt / 120);  // glow at the core
+        }
+        if (b === 'burst') {
+            if (bt < 30) fx(fr(IMPACT.slice(0, 3), bt, 4, true), SX, SPHERE_Y, 1);
+            else if (bt < 50) fx(fr(IMPACT.slice(3), bt - 30, 10, false), SX, SPHERE_Y, 1);
+            else if (bt < 50 + SHRINK.length * 4) fx(fr(SHRINK, bt - 50, 4, false), SX, SPHERE_Y, 1);
+        }
+
+        // Oodama Rasengan charging in his hand while Bansho Ten'in locks on
+        if (b === 'oodama') fx(fr(ORB, bt, 10, false), handX() + 2, handY, 1);
+        if (b === 'oodama' && bt >= 40 || b === 'pull') {
+            // gravity pull: violet lines streaming from Tendo's palm to Naruto
+            const x0 = px - 26, y0 = ground - pLift - 46, x1 = nx + 8, y1 = ground - nLift - 30;
+            ctx.fillStyle = '#b9a6ff';
+            for (let k = 0; k < 3; k++) {
+                for (let i = 0; i < 1; i += 0.04) {
+                    const ph = (i + tick * 0.02 + k * 0.33) % 1;
+                    if (ph > 0.55) continue;
+                    const x = lerp(x1, x0, i), y = lerp(y1, y0, i) + Math.sin(i * 12 + tick * 0.3 + k * 2) * (3 + k * 2);
+                    ctx.globalAlpha = 0.75;
+                    ctx.fillRect(Math.round(x), Math.round(y), 2, 1);
+                }
+            }
+            ctx.globalAlpha = 1;
+        }
+        if (b === 'pull') {
+            fx(ORB[5], nx + 24, ground - nLift - 26, 1);
+            ctx.fillStyle = '#ffffff';                         // speed lines
+            for (let i = 0; i < 6; i++) {
+                ctx.globalAlpha = 0.6;
+                ctx.fillRect(Math.round(nx - 20 - Math.random() * 40), Math.round(ground - 50 + i * 8 + Math.random() * 3), 14 + Math.random() * 20, 1);
+            }
+            ctx.globalAlpha = 1;
+        }
+        if (b === 'impact') {
+            if (bt < 60) fx(fr(IMPACT.slice(0, 3), bt, 4, true), impactX, ground - 30, 1);
+            else fx(fr(IMPACT.slice(3), bt - 60, 10, false), impactX, ground - 30, 1);
+        }
+        if (b === 'launch' && bt < SHRINK.length * 5) fx(fr(SHRINK, bt, 5, false), impactX, ground - 30, 1);
+
+        // debris and dust
+        for (const r of rocks) {
+            if (r.up) {
+                // torn up by Chibaku Tensei: accelerate toward the core
+                const dx = SX - r.x, dy = SPHERE_Y - r.y, d = Math.hypot(dx, dy);
+                const v = 1 + (120 - r.life) * 0.05;
+                r.x += dx / d * v * dt; r.y += dy / d * v * dt; r.life -= dt;
+                if (d < 22 || b === 'burst') r.life = 0;
+                ctx.fillStyle = '#6f5a44';
+                ctx.fillRect(Math.round(r.x), Math.round(r.y), r.s, r.s);
+                continue;
+            }
+            r.vy += 0.16 * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.life -= dt;
+            if (r.y > ground - 2) { r.y = ground - 2; r.vy *= -0.3; r.vx *= 0.7; }
+            ctx.globalAlpha = Math.max(0, Math.min(1, r.life / 20)) * (r.dust ? 0.6 : 1);
+            ctx.fillStyle = r.dust ? '#c9ae84' : '#6f5a44';
+            ctx.fillRect(Math.round(r.x), Math.round(r.y), r.s, r.s);
+        }
+        ctx.globalAlpha = 1;
+        rocks = rocks.filter(r => r.life > 0);
+
+        // white flash on the detonations
+        let flash = 0;
+        if (b === 'burst' && bt < 8) flash = 0.6 * (1 - bt / 8);
+        if (b === 'impact' && bt < 8) flash = 0.6 * (1 - bt / 8);
+        if (b === 'shinra' && bt < 5) flash = 0.35 * (1 - bt / 5);
+        if (flash) { ctx.fillStyle = '#ffffff'; ctx.globalAlpha = flash; ctx.fillRect(-4, -4, W + 8, H + 8); ctx.globalAlpha = 1; }
+
+        tick += dt;
+        requestAnimationFrame(loop);
+    }
+    let last = performance.now();
+    runLoop = () => {
+        if (running) return;
+        running = true;
+        last = performance.now();
+        loop();
+    };
+    return ctl;
+}
+
+// The strip alternates between the two fights: when one finishes, the next
+// fades in over it from its opening beat, and the finished one is paused
+function initFightRotation() {
+    const goku = initGokuUltimate();
+    const naruto = initNarutoPain();
+    if (!goku || !naruto) return;
+    const swap = (next, prev) => {
+        next.restart();
+        next.canvas.classList.add('active');
+        prev.canvas.classList.remove('active');
+        setTimeout(() => prev.pause(), 950); // after the CSS fade
+    };
+    // Until Naruto's sheet has loaded, Goku just loops on his own
+    goku.onEnd = () => naruto.ready() ? swap(naruto, goku) : goku.restart();
+    naruto.onEnd = () => swap(goku, naruto);
 }
 
 // Mac-style terminal for exploring Justin's background
@@ -1331,7 +2058,7 @@ function initPage() {
     initSatellite(); // drives the loading screen
     const astronautReady = initAstronaut() || Promise.resolve();
     initTerminal();
-    initGokuUltimate();
+    initFightRotation();
 
     // Loading screen: hold until the page and its animations are actually ready,
     // but never longer than the failsafe (e.g. an ad-blocked analytics script
