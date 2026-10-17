@@ -223,6 +223,8 @@ function initAstronaut() {
     if (!canvas) return;
 
     let comets = null;
+    // Trail is stored as path progress (u) and mapped to x/y every frame, so a
+    // resize redraws it along the new path instead of leaving it stranded
     const trail = [];
     const TRAIL_MAX = 1700;
 
@@ -235,12 +237,16 @@ function initAstronaut() {
     function setSize() {
         const w = canvas.offsetWidth, h = canvas.offsetHeight;
         if (w > 0 && h > 0 && (w !== cssW || h !== cssH)) {
+            // Mobile browsers resize the panel while scrolling (URL bar
+            // show/hide) — rescale the comets in place rather than respawning
+            // them, or they visibly jump on every scroll
+            if (comets && cssW && cssH) {
+                for (const c of comets) { c.x *= w / cssW; c.y *= h / cssH; }
+            }
             cssW = w; cssH = h;
             canvas.width = Math.round(w * dpr);
             canvas.height = Math.round(h * dpr);
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // resizing resets this
-            comets = null;
-            trail.length = 0; // old trail points are invalid at the new size
         }
     }
     setSize();
@@ -322,10 +328,6 @@ function initAstronaut() {
         if (u < prevU) trail.length = 0;
         prevU = u;
 
-        // Linear path from earth to moon
-        const lx = ex + (mx - ex) * u;
-        const ly = ey + (my - ey) * u;
-
         // Perpendicular direction to the path
         const pathAngle = Math.atan2(my - ey, mx - ex);
         const px = -Math.sin(pathAngle);
@@ -338,15 +340,17 @@ function initAstronaut() {
             0.30 * Math.sin(uu * Math.PI * 7.3 + 1.1) +
             0.15 * Math.sin(uu * Math.PI * 12.9 + 2.4)
         );
-        const hill = hillAt(u);
+        // Linear path from earth to moon, pushed out by the hills
+        const pathX = (uu) => ex + (mx - ex) * uu + px * hillAt(uu);
+        const pathY = (uu) => ey + (my - ey) * uu + py * hillAt(uu);
 
         const size = Math.min(W, H) * 0.28; // astronaut sprite size
 
-        const x = lx + px * hill;
-        const y = ly + py * hill;
+        const x = pathX(u);
+        const y = pathY(u);
 
         // (no wrap-blink check needed — round trip stays within bounds)
-        trail.push({ x, y });
+        trail.push(u);
         if (trail.length > TRAIL_MAX) trail.shift();
 
         // Dashed trail
@@ -356,8 +360,8 @@ function initAstronaut() {
             ctx.lineWidth = 1.1;
             ctx.strokeStyle = 'rgba(50,50,50,0.28)';
             ctx.beginPath();
-            ctx.moveTo(trail[0].x, trail[0].y);
-            for (const p of trail) ctx.lineTo(p.x, p.y);
+            ctx.moveTo(pathX(trail[0]), pathY(trail[0]));
+            for (const tu of trail) ctx.lineTo(pathX(tu), pathY(tu));
             ctx.stroke();
             ctx.setLineDash([]);
             ctx.restore();
