@@ -1933,7 +1933,6 @@ function initTerminal() {
             '   <span class="t-dim">(medRxiv, 2025)</span>',
             '3. Alveolar Bone Grafts vs Orthognathic Surgery on Cleft Palate',
             '   Speech <span class="t-dim">(J. Emerging Investigators, 2024)</span>',
-            '4. Cleft Palate Development: Epigenetic Influences <span class="t-dim">(ASHG, 2024)</span>',
             '<span class="t-dim">Full citations in the PUBLICATIONS panel ←</span>',
         ],
         awards: () => [
